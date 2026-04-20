@@ -3,6 +3,8 @@ use serde::Serialize;
 use std::collections::HashMap;
 use std::path::Path;
 
+use quality_common::{find_source_files, get_git_blame, truncate};
+
 #[derive(Parser)]
 #[command(name = "debt", about = "Technical debt scanner -- track TODO/FIXME/HACK/XXX markers")]
 struct Cli {
@@ -65,7 +67,8 @@ const MARKERS: &[(&str, &str)] = &[
 fn main() {
     let cli = Cli::parse();
 
-    let files = find_source_files(&cli.path, cli.recursive);
+    let extensions = ["rs", "py", "js", "ts", "go", "c", "cpp", "h", "java", "rb", "php"];
+    let files = find_source_files(&cli.path, cli.recursive, &extensions);
     if files.is_empty() {
         eprintln!("No source files found at {}", cli.path);
         std::process::exit(1);
@@ -149,84 +152,6 @@ fn extract_comment_text(line: &str, marker: &str) -> String {
         after.to_string()
     } else {
         line.trim().to_string()
-    }
-}
-
-fn get_git_blame(file_path: &str, line: usize) -> (Option<String>, Option<String>) {
-    use std::process::Command;
-
-    let output = Command::new("git")
-        .args(["blame", "-L", &format!("{},{}", line, line), "--porcelain", file_path])
-        .output();
-
-    match output {
-        Ok(output) if output.status.success() => {
-            let text = String::from_utf8_lossy(&output.stdout);
-            let mut author = None;
-            let mut date = None;
-
-            for line in text.lines() {
-                if let Some(name) = line.strip_prefix("author ") {
-                    author = Some(name.to_string());
-                }
-                if let Some(d) = line.strip_prefix("author-time ") {
-                    if let Ok(ts) = d.parse::<i64>() {
-                        date = Some(format_timestamp(ts));
-                    }
-                }
-            }
-
-            (author, date)
-        }
-        _ => (None, None),
-    }
-}
-
-fn format_timestamp(ts: i64) -> String {
-    // Simple date formatting without chrono dependency for the display
-    let days = ts / 86400;
-    let year = 1970 + days / 365;
-    let remaining = days % 365;
-    let month = remaining / 30 + 1;
-    let day = remaining % 30 + 1;
-    format!("{:04}-{:02}-{:02}", year, month, day)
-}
-
-fn find_source_files(path: &str, recursive: bool) -> Vec<String> {
-    let path = Path::new(path);
-    let mut files = Vec::new();
-    let extensions = ["rs", "py", "js", "ts", "go", "c", "cpp", "h", "java", "rb", "php"];
-
-    if path.is_file() {
-        files.push(path.to_string_lossy().to_string());
-    } else if path.is_dir() {
-        scan_dir(path, recursive, &extensions, &mut files);
-    }
-
-    files.sort();
-    files
-}
-
-fn scan_dir(dir: &Path, recursive: bool, extensions: &[&str], files: &mut Vec<String>) {
-    let entries = match std::fs::read_dir(dir) {
-        Ok(e) => e,
-        Err(_) => return,
-    };
-
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if path.is_file() {
-            if let Some(ext) = path.extension() {
-                if extensions.contains(&ext.to_string_lossy().as_ref()) {
-                    files.push(path.to_string_lossy().to_string());
-                }
-            }
-        } else if recursive && path.is_dir() {
-            let name = path.file_name().unwrap_or_default().to_string_lossy();
-            if name != "target" && name != ".git" && name != "node_modules" && !name.starts_with('.') {
-                scan_dir(&path, recursive, extensions, files);
-            }
-        }
     }
 }
 
@@ -337,10 +262,3 @@ fn output_json(items: &[DebtItem]) {
     println!("{}", serde_json::to_string_pretty(&report).unwrap());
 }
 
-fn truncate(s: &str, max: usize) -> String {
-    if s.len() <= max {
-        s.to_string()
-    } else {
-        format!("{}…", &s[..max - 1])
-    }
-}

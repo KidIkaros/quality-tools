@@ -2,9 +2,9 @@ use clap::Parser;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::path::Path;
-use std::process::Command;
 
 use ast_parse::analyze_file;
+use quality_common::{get_git_churn, truncate};
 
 #[derive(Parser)]
 #[command(name = "riskmap", about = "Risk map -- cross-reference git churn with code complexity to find danger zones")]
@@ -148,31 +148,6 @@ fn main() {
     }
 }
 
-/// Get git churn data: file -> number of commits
-fn get_git_churn(repo_root: &Path, since: &str) -> HashMap<String, u32> {
-    let output = Command::new("git")
-        .args(["log", "--since", since, "--name-only", "--pretty=format:"])
-        .current_dir(repo_root)
-        .output();
-
-    let mut churn: HashMap<String, u32> = HashMap::new();
-
-    match output {
-        Ok(output) if output.status.success() => {
-            let text = String::from_utf8_lossy(&output.stdout);
-            for line in text.lines() {
-                let file = line.trim();
-                if !file.is_empty() && !file.starts_with('.') {
-                    *churn.entry(file.to_string()).or_insert(0) += 1;
-                }
-            }
-        }
-        _ => {}
-    }
-
-    churn
-}
-
 fn output_table(file_risks: &[FileRisk]) {
     if file_risks.is_empty() {
         println!("No risk data found.");
@@ -275,10 +250,3 @@ fn output_json(file_risks: &[FileRisk]) {
     println!("{}", serde_json::to_string_pretty(&report).unwrap());
 }
 
-fn truncate(s: &str, max: usize) -> String {
-    if s.len() <= max {
-        s.to_string()
-    } else {
-        format!("…{}", &s[s.len() - max + 1..])
-    }
-}

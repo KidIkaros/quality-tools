@@ -1,9 +1,10 @@
 use clap::Parser;
 use serde::Serialize;
 use std::collections::HashMap;
-use std::path::Path;
 use syn::visit::Visit;
 use syn::{Block, Expr, ItemFn, Stmt};
+
+use quality_common::{find_rust_files, truncate};
 
 #[derive(Parser)]
 #[command(name = "dupfind", about = "Code duplication detection -- find copy-pasted blocks via structural similarity")]
@@ -113,7 +114,7 @@ struct SkeletonVisitor<'a> {
 impl<'a> Visit<'a> for SkeletonVisitor<'a> {
     fn visit_item_fn(&mut self, node: &'a ItemFn) {
         let name = node.sig.ident.to_string();
-        let line = estimate_line(self.source, &name);
+        let line = quality_common::estimate_fn_line(self.source, &name);
         let pattern = normalize_block(&node.block);
         let stmt_count = node.block.stmts.len();
 
@@ -289,48 +290,7 @@ fn pattern_similarity(a: &str, b: &str) -> f64 {
     intersection as f64 / union as f64
 }
 
-fn estimate_line(source: &str, fn_name: &str) -> usize {
-    let pattern = format!("fn {}", fn_name);
-    for (i, line) in source.lines().enumerate() {
-        if line.contains(&pattern) {
-            return i + 1;
-        }
-    }
-    1
-}
 
-fn find_rust_files(path: &str, recursive: bool) -> Vec<String> {
-    let path = Path::new(path);
-    let mut files = Vec::new();
-
-    if path.is_file() && path.extension().map_or(false, |e| e == "rs") {
-        files.push(path.to_string_lossy().to_string());
-    } else if path.is_dir() {
-        scan_dir(path, recursive, &mut files);
-    }
-
-    files.sort();
-    files
-}
-
-fn scan_dir(dir: &Path, recursive: bool, files: &mut Vec<String>) {
-    let entries = match std::fs::read_dir(dir) {
-        Ok(e) => e,
-        Err(_) => return,
-    };
-
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if path.is_file() && path.extension().map_or(false, |e| e == "rs") {
-            files.push(path.to_string_lossy().to_string());
-        } else if recursive && path.is_dir() {
-            let name = path.file_name().unwrap_or_default().to_string_lossy();
-            if name != "target" && name != ".git" && !name.starts_with('.') {
-                scan_dir(&path, recursive, files);
-            }
-        }
-    }
-}
 
 fn output_table(groups: &[DuplicateGroup]) {
     if groups.is_empty() {
@@ -388,10 +348,3 @@ fn output_json(groups: &[DuplicateGroup]) {
     println!("{}", serde_json::to_string_pretty(&report).unwrap());
 }
 
-fn truncate(s: &str, max: usize) -> String {
-    if s.len() <= max {
-        s.to_string()
-    } else {
-        format!("{}…", &s[..max - 1])
-    }
-}

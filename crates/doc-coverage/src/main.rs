@@ -1,10 +1,11 @@
 use clap::Parser;
 use serde::Serialize;
-use std::path::Path;
 use syn::visit::Visit;
 use syn::{
-    ImplItemFn, ItemEnum, ItemFn, ItemImpl, ItemMod, ItemStruct, ItemTrait, Visibility,
+    ImplItemFn, ItemEnum, ItemFn, ItemStruct, ItemTrait, Visibility,
 };
+
+use quality_common::find_rust_files;
 
 #[derive(Parser)]
 #[command(name = "doccov", about = "Documentation coverage -- measure public API doc comment percentage")]
@@ -233,39 +234,6 @@ impl<'a> Visit<'a> for DocVisitor<'a> {
         });
 
         syn::visit::visit_impl_item_fn(self, node);
-    }
-}
-
-fn find_rust_files(path: &str, recursive: bool) -> Vec<String> {
-    let path = Path::new(path);
-    let mut files = Vec::new();
-
-    if path.is_file() && path.extension().map_or(false, |e| e == "rs") {
-        files.push(path.to_string_lossy().to_string());
-    } else if path.is_dir() {
-        scan_dir(path, recursive, &mut files);
-    }
-
-    files.sort();
-    files
-}
-
-fn scan_dir(dir: &Path, recursive: bool, files: &mut Vec<String>) {
-    let entries = match std::fs::read_dir(dir) {
-        Ok(e) => e,
-        Err(_) => return,
-    };
-
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if path.is_file() && path.extension().map_or(false, |e| e == "rs") {
-            files.push(path.to_string_lossy().to_string());
-        } else if recursive && path.is_dir() {
-            let name = path.file_name().unwrap_or_default().to_string_lossy();
-            if name != "target" && name != ".git" && !name.starts_with('.') {
-                scan_dir(&path, recursive, files);
-            }
-        }
     }
 }
 

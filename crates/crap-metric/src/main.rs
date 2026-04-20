@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use ast_parse::{analyze_file, crap_category, crap_score, find_coverage, parse_lcov, FileCoverage, FunctionComplexity};
+use quality_common::{find_rust_files, truncate};
 
 #[derive(Parser)]
 #[command(name = "crap", about = "CRAP metric calculator — maintenance risk scoring")]
@@ -128,38 +129,6 @@ fn main() {
     }
 }
 
-fn find_rust_files(path: &str, recursive: bool) -> Vec<String> {
-    let path = Path::new(path);
-    let mut files = Vec::new();
-
-    if path.is_file() && path.extension().map_or(false, |e| e == "rs") {
-        files.push(path.to_string_lossy().to_string());
-    } else if path.is_dir() {
-        find_rust_in_dir(path, recursive, &mut files);
-    }
-
-    files
-}
-
-fn find_rust_in_dir(dir: &Path, recursive: bool, files: &mut Vec<String>) {
-    let entries = match std::fs::read_dir(dir) {
-        Ok(e) => e,
-        Err(_) => return,
-    };
-
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if path.is_file() && path.extension().map_or(false, |e| e == "rs") {
-            files.push(path.to_string_lossy().to_string());
-        } else if recursive && path.is_dir() {
-            let name = path.file_name().unwrap_or_default().to_string_lossy();
-            if name != "target" && name != ".git" && !name.starts_with('.') {
-                find_rust_in_dir(&path, recursive, files);
-            }
-        }
-    }
-}
-
 fn output_table(reports: &[FunctionReport]) {
     if reports.is_empty() {
         println!("No functions found.");
@@ -264,10 +233,3 @@ fn output_json(reports: &[FunctionReport]) {
     println!("{}", serde_json::to_string_pretty(&report).unwrap());
 }
 
-fn truncate(s: &str, max: usize) -> String {
-    if s.len() <= max {
-        s.to_string()
-    } else {
-        format!("…{}", &s[s.len() - max + 1..])
-    }
-}

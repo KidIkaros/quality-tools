@@ -202,6 +202,7 @@ name = "coupling"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "quality-common",
  "serde",
  "serde_json",
 ]
@@ -214,6 +215,7 @@ dependencies = [
  "ast-parse",
  "clap",
  "predicates",
+ "quality-common",
  "serde",
  "serde_json",
 ]
@@ -224,6 +226,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "clap",
+ "quality-common",
  "serde",
  "serde_json",
 ]
@@ -240,6 +243,7 @@ version = "0.1.0"
 dependencies = [
  "ast-parse",
  "clap",
+ "quality-common",
  "serde",
  "serde_json",
  "syn",
@@ -251,6 +255,7 @@ version = "0.1.0"
 dependencies = [
  "ast-parse",
  "clap",
+ "quality-common",
  "serde",
  "serde_json",
  "syn",
@@ -349,6 +354,7 @@ dependencies = [
  "ast-parse",
  "clap",
  "predicates",
+ "quality-common",
  "serde",
  "serde_json",
 ]
@@ -420,6 +426,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "quality-common"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -463,6 +478,7 @@ version = "0.1.0"
 dependencies = [
  "ast-parse",
  "clap",
+ "quality-common",
  "serde",
  "serde_json",
 ]
