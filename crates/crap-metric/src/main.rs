@@ -94,10 +94,18 @@ fn main() {
         .into_iter()
         .map(|func| {
             let coverage_pct = if let Some(ref cov_data) = coverage_data {
-                find_coverage(cov_data, &func.file)
-                    .map(|c| c.coverage_pct())
-                    .or(cli.coverage_pct)
-                    .unwrap_or(0.0)
+                // Try per-function coverage first (from DA records)
+                if let Some(cov) = find_coverage(cov_data, &func.file) {
+                    let (_, _, func_cov) = cov.range_coverage(func.line, func.end_line);
+                    if func_cov > 0.0 || !cov.da_records.is_empty() {
+                        func_cov
+                    } else {
+                        // Fall back to file-level coverage
+                        cov.coverage_pct()
+                    }
+                } else {
+                    cli.coverage_pct.unwrap_or(0.0)
+                }
             } else {
                 cli.coverage_pct.unwrap_or(0.0)
             };
