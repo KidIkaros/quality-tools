@@ -1,3 +1,4 @@
+// Refactoring progress: Step 4
 #![deny(clippy::all)]
 
 use ast_parse_ts::{parse_complexity, Language};
