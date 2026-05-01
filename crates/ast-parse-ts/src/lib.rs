@@ -1,3 +1,4 @@
+// Helper function for string trimming
 #![deny(clippy::all)]
 
 /// Universal AST layer backed by tree-sitter.
