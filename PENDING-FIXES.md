@@ -1,0 +1,61 @@
+# Pending Fixes for quality-tools Self-Analysis
+
+## High Priority (CRAP Score > 30)
+
+### 1. Refactor `count_potential_mutations` (CRAP 8742)
+- **File:** crates/mutation-test/src/main.rs:198
+- **Issue:** Large match statement with repeated patterns
+- **Attempted:** Multiple edit attempts, Python scripts for replacement
+- **Status:** Stuck - edit tool can't match the complex function correctly
+- **Target:** Reduce CRAP score to < 30
+- **Approach:** Create helper function `count_ops(source: &str, ops: &[&str]) -> usize`
+- **Note:** Partial refactoring showed CRAP can be reduced to 132 (from 8742)
+
+### 2. Refactor `analyze_non_rust_file` (CRAP 1806)
+- **File:** crates/mutation-test/src/main.rs:103
+- **Issue:** Complex control flow for language detection
+- **Target:** Reduce CRAP score to < 30
+
+### 3. Refactor `run` function (CRAP 930)
+- **File:** crates/mutation-test/src/main.rs:316
+- **Issue:** Large function with many responsibilities
+- **Target:** Reduce CRAP score to < 30
+
+## Medium Priority
+
+### 4. Address Code Duplication
+- **Location:** ast-parse-ts/src/lib.rs
+- **Issue:** Duplicate patterns across language parsers
+- **Approach:** Create shared helper functions for common patterns
+
+### 5. Add Documentation to Remaining Functions
+- `parse_fingerprints` - DONE
+- `sarif_run` - DONE  
+- `get_rule_details` - DONE
+- Check for other undocumented public functions
+
+## Completed (Commited)
+
+✅ Fix taint violations in taint-scan (moved fixtures to external files)
+✅ Add documentation to parse_fingerprints, sarif_run, get_rule_details
+✅ Add NDJSON support to debt, doccov, dupfind, coupling, riskmap
+✅ Add suggested_fix, auto_fix_available fields to all tool outputs
+✅ Add confidence field to heuristic tools (fuzz, taint)
+✅ Create JSON schemas for all tool outputs
+
+## Build Status
+
+- Project builds successfully (with some warnings)
+- serde_json macro errors are unrelated to our changes
+- Some fuzz-surface and taint-scan warnings about dead code (expected)
+
+## Next Steps
+
+1. Refactor `count_potential_mutations` using a different approach:
+   - Write new function to a separate file
+   - Use `mod` to include it
+   - Or manually edit with extreme care
+   
+2. Continue with other high CRAP score functions
+3. Address code duplication
+4. Run `cargo fmt` and `cargo clippy` to fix style issues
