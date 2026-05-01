@@ -66,3 +66,14 @@
 **Finding:** CRAP score CAN be reduced from 8742 to 132 with simpler approach (proven earlier)
 **Blocker:** Syntax errors keep occurring when trying to replace the function
 **Next steps:** Come back with fresh eyes, consider writing helper functions separately
+## UPDATED STATUS: count_potential_mutations (CRAP 8742) - STUCK
+
+**Attempts made:** 15+ tries with edit tool, Python scripts, sed approaches
+**Issue:** Complex function with nested braces - edit tool cannot match correctly
+**Partial success:** Showed CRAP can be reduced from 8742 to 132 with right approach
+**Next steps:** Come back with fresh eyes, consider writing helper functions separately
+
+## MOVING ON TO:
+1. Fix analyze_non_rust_file (CRAP 1806)
+2. Address code duplication in ast-parse-ts
+3. Fix other high CRAP score functions
