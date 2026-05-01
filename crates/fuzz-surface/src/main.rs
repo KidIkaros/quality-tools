@@ -996,18 +996,15 @@ fn parse_rust_fn_sig(
 
 fn parse_python_fn_sig(sig: &str, file: &str, line: usize) -> Option<FuzzableFunction> {
     // Extract function name
-    let after_def = if let Some(pos) = sig.find("def ") {
-        &sig[pos + 4..]
-    } else {
-        return None;
-    };
+fn parse_python_fn_sig(sig: &str, file: &str, line: usize) -> Option<FuzzableFunction> {
+    let name = extract_fn_name(
+        sig,
+        &[
+            "def ",
+            "async def ",
+        ],
+    )?;
 
-    let name_end = after_def.find('(')?;
-    let name = after_def[..name_end].trim().to_string();
-
-    // Extract parameters
-    let params_start = sig.find('(')?;
-    let params_end = sig.rfind(')')?;
     let params_str = &sig[params_start + 1..params_end];
 
     let params: Vec<String> = if params_str.is_empty() {
