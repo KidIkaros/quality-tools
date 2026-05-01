@@ -78,7 +78,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 const PROP_COV_EXTS: &[&str] = &[
-    "rs", "py", "pyi", "js", "mjs", "ts", "tsx", "go", "java", "cs", "php",
+    "rs", "py", "pyi", "js", "mjs", "ts", "tsx", "go", "java", "cs", "php", "rb", "swift",
 ];
 
 fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {

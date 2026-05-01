@@ -1,8 +1,10 @@
 #![deny(clippy::all)]
 
-use ast_parse_ts::parse_complexity;
+use ast_parse_ts::{parse_complexity, Language};
 use clap::Parser;
-use quality_common::{print_table_header, print_table_row, separator, truncate, Column};
+use quality_common::{
+    find_source_files, print_table_header, print_table_row, separator, truncate, Column,
+};
 use serde::Serialize;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
@@ -68,19 +70,35 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     let target_path = Path::new(&cli.path);
 
+    // Supported languages for fuzzing analysis
+    let supported_exts = ["rs", "py", "js", "ts", "go"];
+
     let source_files = if target_path.is_dir() {
-        find_rs_files(target_path, cli.recursive)
-    } else if target_path.is_file() && target_path.extension().is_some_and(|e| e == "rs") {
-        vec![target_path.to_path_buf()]
+        find_source_files(&cli.path, cli.recursive, &supported_exts)
+            .into_iter()
+            .map(PathBuf::from)
+            .collect()
+    } else if target_path.is_file() {
+        let ext = target_path
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("");
+        if supported_exts.contains(&ext) {
+            vec![target_path.to_path_buf()]
+        } else {
+            return Err(format!("Unsupported file type: {}", cli.path).into());
+        }
     } else {
-        return Err("No Rust source files found at {}".to_string().into());
+        return Err(format!("No source files found at {}", cli.path).into());
     };
 
     if source_files.is_empty() {
-        return Err("No .rs files found to analyze.".to_string().into());
+        return Err("No supported source files found to analyze."
+            .to_string()
+            .into());
     }
 
-    // Check for existing fuzz harnesses
+    // Check for existing fuzz harnesses (Rust only for now)
     let harnesses = find_fuzz_harnesses(target_path);
 
     let mut all_functions: Vec<FuzzableFunction> = Vec::new();
@@ -91,7 +109,10 @@ fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             Err(_) => continue,
         };
 
-        let functions = analyze_file(&source, file_path, &harnesses);
+        let file_str = file_path.to_string_lossy().to_string();
+        let lang = Language::from_extension(&file_str);
+
+        let functions = analyze_file(&source, file_path, &harnesses, lang);
         all_functions.extend(functions);
     }
 
@@ -148,9 +169,25 @@ fn analyze_file(
     source: &str,
     file_path: &Path,
     harnesses: &HashSet<String>,
+    lang: Language,
 ) -> Vec<FuzzableFunction> {
     let file_str = file_path.to_string_lossy().to_string();
 
+    // Use language-specific analysis
+    match lang {
+        Language::Rust => analyze_rust_file(source, &file_str, harnesses),
+        Language::Python => analyze_python_file(source, &file_str),
+        Language::JavaScript | Language::TypeScript => analyze_js_file(source, &file_str),
+        Language::Go => analyze_go_file(source, &file_str),
+        _ => Vec::new(),
+    }
+}
+
+fn analyze_rust_file(
+    source: &str,
+    file: &str,
+    harnesses: &HashSet<String>,
+) -> Vec<FuzzableFunction> {
     // Simple heuristic-based analysis (string-based, no full AST parse)
     let mut functions = Vec::new();
     let mut in_fn = false;
@@ -170,13 +207,12 @@ fn analyze_file(
             brace_depth = brace_depth.saturating_sub(trimmed.matches('}').count());
 
             if brace_depth == 0 && trimmed.contains('}') {
-                // End of function - process the signature
-                if let Some(mut f) = parse_fn_sig(&fn_sig, &file_str, fn_start_line, harnesses) {
-                    f.complexity =
-                        parse_complexity(source, &file_str, ast_parse_ts::Language::Rust)
-                            .into_iter()
-                            .find(|func| func.name == f.name)
-                            .map_or(10, |func| func.complexity);
+                // End of function - process signature
+                if let Some(mut f) = parse_rust_fn_sig(&fn_sig, file, fn_start_line, harnesses) {
+                    f.complexity = parse_complexity(source, file, Language::Rust)
+                        .into_iter()
+                        .find(|func| func.name == f.name)
+                        .map_or(10, |func| func.complexity);
                     functions.push(f);
                 }
                 in_fn = false;
@@ -195,7 +231,7 @@ fn analyze_file(
                 fn_sig = trimmed.to_string();
                 brace_depth = trimmed.matches('{').count() - trimmed.matches('}').count();
                 if brace_depth > 0 {
-                    if let Some(f) = parse_fn_sig(&fn_sig, &file_str, fn_start_line, harnesses) {
+                    if let Some(f) = parse_rust_fn_sig(&fn_sig, file, fn_start_line, harnesses) {
                         functions.push(f);
                     }
                     in_fn = false;
@@ -208,7 +244,117 @@ fn analyze_file(
     functions
 }
 
-fn parse_fn_sig(
+fn analyze_python_file(source: &str, file: &str) -> Vec<FuzzableFunction> {
+    let mut functions = Vec::new();
+    let mut in_fn = false;
+    let mut fn_sig = String::new();
+    let mut fn_start_line = 0;
+    let mut indent_level = 0;
+    let mut line_num = 0;
+
+    for line in source.lines() {
+        line_num += 1;
+        let trimmed = line.trim();
+
+        // Track indentation level for Python
+        let current_indent = line.len() - line.trim_start().len();
+
+        if in_fn {
+            if current_indent <= indent_level && !trimmed.is_empty() {
+                // End of function (dedent)
+                if let Some(mut f) = parse_python_fn_sig(&fn_sig, file, fn_start_line) {
+                    f.complexity = parse_complexity(source, file, Language::Python)
+                        .into_iter()
+                        .find(|func| func.name == f.name)
+                        .map_or(10, |func| func.complexity);
+                    functions.push(f);
+                }
+                in_fn = false;
+                fn_sig.clear();
+            } else {
+                fn_sig.push(' ');
+                fn_sig.push_str(trimmed);
+            }
+        } else {
+            // Check for function signature
+            if (trimmed.starts_with("def ") || trimmed.starts_with("async def "))
+                && trimmed.contains(':')
+            {
+                in_fn = true;
+                fn_start_line = line_num;
+                fn_sig = trimmed.to_string();
+                indent_level = current_indent;
+
+                // Handle single-line functions
+                if let Some(pos) = trimmed.find(':') {
+                    if pos + 1 < trimmed.len() {
+                        // Has code after colon - single line
+                        if let Some(f) = parse_python_fn_sig(&fn_sig, file, fn_start_line) {
+                            functions.push(f);
+                        }
+                        in_fn = false;
+                        fn_sig.clear();
+                    }
+                }
+            }
+        }
+    }
+
+    functions
+}
+
+fn analyze_js_file(source: &str, file: &str) -> Vec<FuzzableFunction> {
+    let mut functions = Vec::new();
+    let mut line_num = 0;
+
+    for line in source.lines() {
+        line_num += 1;
+        let trimmed = line.trim();
+
+        // Look for function definitions
+        if (trimmed.starts_with("function ")
+            || trimmed.starts_with("const ")
+            || trimmed.starts_with("let ")
+            || trimmed.contains("=>"))
+            && trimmed.contains('(')
+        {
+            if let Some(mut f) = parse_js_fn_sig(trimmed, file, line_num) {
+                f.complexity = parse_complexity(source, file, Language::JavaScript)
+                    .into_iter()
+                    .find(|func| func.name == f.name)
+                    .map_or(10, |func| func.complexity);
+                functions.push(f);
+            }
+        }
+    }
+
+    functions
+}
+
+fn analyze_go_file(source: &str, file: &str) -> Vec<FuzzableFunction> {
+    let mut functions = Vec::new();
+    let mut line_num = 0;
+
+    for line in source.lines() {
+        line_num += 1;
+        let trimmed = line.trim();
+
+        // Look for Go function definitions
+        if trimmed.starts_with("func ") && trimmed.contains('(') {
+            if let Some(mut f) = parse_go_fn_sig(trimmed, file, line_num) {
+                f.complexity = parse_complexity(source, file, Language::Go)
+                    .into_iter()
+                    .find(|func| func.name == f.name)
+                    .map_or(10, |func| func.complexity);
+                functions.push(f);
+            }
+        }
+    }
+
+    functions
+}
+
+fn parse_rust_fn_sig(
     sig: &str,
     file: &str,
     line: usize,
@@ -288,7 +434,7 @@ fn parse_fn_sig(
     score += params.len() as u32 * 2;
 
     // Functions with more complexity are more likely to have bugs
-    let complexity = estimate_complexity(sig);
+    let complexity = estimate_rust_complexity(sig);
     if complexity > 5 {
         score += 5;
     }
@@ -311,9 +457,248 @@ fn parse_fn_sig(
     })
 }
 
-fn estimate_complexity(sig: &str) -> u32 {
-    // Simple heuristic: count control flow keywords in the signature
-    // For actual complexity we'd need to parse the body
+fn parse_python_fn_sig(sig: &str, file: &str, line: usize) -> Option<FuzzableFunction> {
+    // Extract function name
+    let after_def = if let Some(pos) = sig.find("def ") {
+        &sig[pos + 4..]
+    } else {
+        return None;
+    };
+
+    let name_end = after_def.find('(')?;
+    let name = after_def[..name_end].trim().to_string();
+
+    // Extract parameters
+    let params_start = sig.find('(')?;
+    let params_end = sig.rfind(')')?;
+    let params_str = &sig[params_start + 1..params_end];
+
+    let params: Vec<String> = if params_str.is_empty() {
+        vec![]
+    } else {
+        params_str
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .collect()
+    };
+
+    // Calculate fuzzability score
+    let mut score = 0u32;
+    let mut fuzzable_params = Vec::new();
+
+    for param in &params {
+        let param_lower = param.to_lowercase();
+        // Raw byte input is very fuzzable
+        if param_lower.contains("bytes") || param_lower.contains("bytearray") {
+            score += 30;
+            fuzzable_params.push(param.clone());
+        }
+        // String inputs are good fuzz targets
+        else if param_lower.contains("str") {
+            score += 20;
+            fuzzable_params.push(param.clone());
+        }
+        // Lists can be fuzz targets
+        else if param_lower.contains("list") {
+            score += 15;
+            fuzzable_params.push(param.clone());
+        }
+    }
+
+    // No fuzzable params = not worth fuzzing
+    if score == 0 {
+        return None;
+    }
+
+    // Python functions don't have explicit visibility, but we can infer from name
+    let is_public = !name.starts_with('_');
+
+    // More parameters = more combinations to explore
+    score += params.len() as u32 * 2;
+
+    // Functions with more complexity are more likely to have bugs
+    let complexity = estimate_python_complexity(sig);
+    if complexity > 5 {
+        score += 5;
+    }
+
+    Some(FuzzableFunction {
+        name,
+        file: file.to_string(),
+        line,
+        params: fuzzable_params,
+        score,
+        is_public,
+        complexity,
+        has_harness: false, // No harness tracking for Python yet
+    })
+}
+
+fn parse_js_fn_sig(sig: &str, file: &str, line: usize) -> Option<FuzzableFunction> {
+    // Extract function name
+    let name = if sig.starts_with("function ") {
+        let after_func = &sig["function ".len()..];
+        let name_end = after_func.find('(')?;
+        after_func[..name_end].trim().to_string()
+    } else if (sig.starts_with("const ") || sig.starts_with("let ")) {
+        // Handle arrow functions: const foo = (a, b) => {}
+        let after_kw = sig.split_whitespace().nth(1)?;
+        let name_part = after_kw.split('=').next()?.trim();
+        let name_end = name_part.find('(')?;
+        name_part[..name_end].trim().to_string()
+    } else {
+        return None;
+    };
+
+    if name.is_empty() {
+        return None;
+    }
+
+    // Extract parameters
+    let params_start = sig.find('(')?;
+    let params_end = sig.rfind(')')?;
+    let params_str = &sig[params_start + 1..params_end];
+
+    let params: Vec<String> = if params_str.is_empty() {
+        vec![]
+    } else {
+        params_str
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .collect()
+    };
+
+    // Calculate fuzzability score
+    let mut score = 0u32;
+    let mut fuzzable_params = Vec::new();
+
+    for param in &params {
+        let param_lower = param.to_lowercase();
+        // Raw byte input is very fuzzable (Uint8Array)
+        if param_lower.contains("uint8array") || param_lower.contains("buffer") {
+            score += 30;
+            fuzzable_params.push(param.clone());
+        }
+        // String inputs are good fuzz targets
+        else if param_lower.contains("string") {
+            score += 20;
+            fuzzable_params.push(param.clone());
+        }
+        // Arrays can be fuzz targets
+        else if param_lower.contains("array") || param_lower.contains("[]") {
+            score += 15;
+            fuzzable_params.push(param.clone());
+        }
+    }
+
+    // No fuzzable params = not worth fuzzing
+    if score == 0 {
+        return None;
+    }
+
+    // JavaScript functions don't have explicit visibility
+    let is_public = true;
+
+    // More parameters = more combinations to explore
+    score += params.len() as u32 * 2;
+
+    // Functions with more complexity are more likely to have bugs
+    let complexity = estimate_js_complexity(sig);
+    if complexity > 5 {
+        score += 5;
+    }
+
+    Some(FuzzableFunction {
+        name,
+        file: file.to_string(),
+        line,
+        params: fuzzable_params,
+        score,
+        is_public,
+        complexity,
+        has_harness: false, // No harness tracking for JS yet
+    })
+}
+
+fn parse_go_fn_sig(sig: &str, file: &str, line: usize) -> Option<FuzzableFunction> {
+    // Extract function name
+    let after_func = if let Some(pos) = sig.find("func ") {
+        &sig[pos + 5..]
+    } else {
+        return None;
+    };
+
+    let name_end = after_func.find('(')?;
+    let name = after_func[..name_end].trim().to_string();
+
+    // Extract parameters
+    let params_start = sig.find('(')?;
+    let params_end = sig.rfind(')')?;
+    let params_str = &sig[params_start + 1..params_end];
+
+    let params: Vec<String> = if params_str.is_empty() {
+        vec![]
+    } else {
+        params_str
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .collect()
+    };
+
+    // Calculate fuzzability score
+    let mut score = 0u32;
+    let mut fuzzable_params = Vec::new();
+
+    for param in &params {
+        let param_lower = param.to_lowercase();
+        // Raw byte input is very fuzzable
+        if param_lower.contains("[]byte") {
+            score += 30;
+            fuzzable_params.push(param.clone());
+        }
+        // String inputs are good fuzz targets
+        else if param_lower.contains("string") {
+            score += 20;
+            fuzzable_params.push(param.clone());
+        }
+        // Interfaces can be fuzz targets
+        else if param_lower.contains("interface") {
+            score += 10;
+            fuzzable_params.push(param.clone());
+        }
+    }
+
+    // No fuzzable params = not worth fuzzing
+    if score == 0 {
+        return None;
+    }
+
+    // Go functions starting with uppercase are exported (public)
+    let is_public = name.chars().next().map_or(false, |c| c.is_uppercase());
+
+    // More parameters = more combinations to explore
+    score += params.len() as u32 * 2;
+
+    // Functions with more complexity are more likely to have bugs
+    let complexity = estimate_go_complexity(sig);
+    if complexity > 5 {
+        score += 5;
+    }
+
+    Some(FuzzableFunction {
+        name,
+        file: file.to_string(),
+        line,
+        params: fuzzable_params,
+        score,
+        is_public,
+        complexity,
+        has_harness: false, // No harness tracking for Go yet
+    })
+}
+
+fn estimate_rust_complexity(sig: &str) -> u32 {
+    // Simple heuristic: count control flow keywords in signature
     let mut complexity = 1;
     if sig.contains("if ") {
         complexity += 1;
@@ -325,6 +710,60 @@ fn estimate_complexity(sig: &str) -> u32 {
         complexity += 1;
     }
     if sig.contains("while ") {
+        complexity += 1;
+    }
+    complexity
+}
+
+fn estimate_python_complexity(sig: &str) -> u32 {
+    // Simple heuristic: count control flow keywords
+    let mut complexity = 1;
+    if sig.contains("if ") {
+        complexity += 1;
+    }
+    if sig.contains("for ") {
+        complexity += 1;
+    }
+    if sig.contains("while ") {
+        complexity += 1;
+    }
+    if sig.contains("except ") {
+        complexity += 1;
+    }
+    complexity
+}
+
+fn estimate_js_complexity(sig: &str) -> u32 {
+    // Simple heuristic: count control flow keywords
+    let mut complexity = 1;
+    if sig.contains("if") {
+        complexity += 1;
+    }
+    if sig.contains("for") {
+        complexity += 1;
+    }
+    if sig.contains("while") {
+        complexity += 1;
+    }
+    if sig.contains("switch") {
+        complexity += 1;
+    }
+    complexity
+}
+
+fn estimate_go_complexity(sig: &str) -> u32 {
+    // Simple heuristic: count control flow keywords
+    let mut complexity = 1;
+    if sig.contains("if ") {
+        complexity += 1;
+    }
+    if sig.contains("for ") {
+        complexity += 1;
+    }
+    if sig.contains("switch ") {
+        complexity += 1;
+    }
+    if sig.contains("select ") {
         complexity += 1;
     }
     complexity
@@ -439,9 +878,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_parse_fn_sig_fuzzable() {
+    fn test_parse_rust_fn_sig_fuzzable() {
         let harnesses = HashSet::new();
-        let f = parse_fn_sig(
+        let f = parse_rust_fn_sig(
             "pub fn parse_data(data: &[u8]) -> Result<String, Error> { }",
             "test.rs",
             1,
@@ -455,9 +894,9 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_fn_sig_not_fuzzable() {
+    fn test_parse_rust_fn_sig_not_fuzzable() {
         let harnesses = HashSet::new();
-        let f = parse_fn_sig(
+        let f = parse_rust_fn_sig(
             "fn internal_helper(x: i32) -> i32 { }",
             "test.rs",
             1,
@@ -467,24 +906,38 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_fn_sig_string() {
-        let harnesses = HashSet::new();
-        let f = parse_fn_sig(
-            "pub fn process_name(name: String) -> bool { }",
-            "test.rs",
-            1,
-            &harnesses,
-        )
-        .unwrap();
-        assert_eq!(f.score, 32); // 20 for String + 10 for pub + 1 param*2
-        assert!(f.params.iter().any(|p| p.contains("String")));
+    fn test_parse_python_fn_sig_fuzzable() {
+        let f = parse_python_fn_sig("def process_data(data: bytes) -> str:", "test.py", 1).unwrap();
+        assert_eq!(f.name, "process_data");
+        assert!(f.is_public);
+        assert_eq!(f.score, 32); // 30 for bytes + 1 param*2
+        assert!(f.params.iter().any(|p| p.contains("bytes")));
+    }
+
+    #[test]
+    fn test_parse_js_fn_sig_fuzzable() {
+        let f =
+            parse_js_fn_sig("function parseData(data: string): string {", "test.js", 1).unwrap();
+        assert_eq!(f.name, "parseData");
+        assert!(f.is_public);
+        assert_eq!(f.score, 22); // 20 for string + 1 param*2
+        assert!(f.params.iter().any(|p| p.contains("string")));
+    }
+
+    #[test]
+    fn test_parse_go_fn_sig_fuzzable() {
+        let f = parse_go_fn_sig("func ParseData(data []byte) string {", "test.go", 1).unwrap();
+        assert_eq!(f.name, "ParseData");
+        assert!(f.is_public);
+        assert_eq!(f.score, 32); // 30 for []byte + 1 param*2
+        assert!(f.params.iter().any(|p| p.contains("[]byte")));
     }
 
     #[test]
     fn test_harness_detection() {
         let mut harnesses = HashSet::new();
         harnesses.insert("parse_data".to_string());
-        let f = parse_fn_sig(
+        let f = parse_rust_fn_sig(
             "pub fn parse_data(data: &[u8]) -> Result<String, Error> { }",
             "test.rs",
             1,

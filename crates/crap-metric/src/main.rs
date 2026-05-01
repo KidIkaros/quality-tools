@@ -75,7 +75,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &cli.path,
         cli.recursive,
         &[
-            "rs", "py", "js", "ts", "go", "c", "cpp", "cs", "java", "php",
+            "rs", "py", "js", "ts", "go", "c", "cpp", "cs", "java", "php", "rb", "swift",
         ],
     );
     if files.is_empty() {

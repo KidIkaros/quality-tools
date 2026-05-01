@@ -1,7 +1,7 @@
 #![deny(clippy::all)]
 
 /// Universal AST layer backed by tree-sitter.
-/// Supports Rust, Python, JavaScript, TypeScript, Go, C, C++, C#, Java, PHP.
+/// Supports Rust, Python, JavaScript, TypeScript, Go, C, C++, C#, Java, PHP, Ruby, Swift, Kotlin.
 use std::cell::RefCell;
 use tree_sitter::{Language as TsLanguage, Node, Parser};
 
@@ -22,6 +22,9 @@ pub enum Language {
     CSharp,
     Java,
     Php,
+    Ruby,
+    Swift,
+    Kotlin,
     Unknown,
 }
 
@@ -40,6 +43,9 @@ impl Language {
             "cs" => Language::CSharp,
             "java" => Language::Java,
             "php" => Language::Php,
+            "rb" => Language::Ruby,
+            "swift" => Language::Swift,
+            "kt" | "kts" => Language::Kotlin,
             _ => Language::Unknown,
         }
     }
@@ -56,6 +62,9 @@ impl Language {
             Language::CSharp => Some(tree_sitter_c_sharp::LANGUAGE.into()),
             Language::Java => Some(tree_sitter_java::LANGUAGE.into()),
             Language::Php => Some(tree_sitter_php::LANGUAGE_PHP.into()),
+            Language::Ruby => Some(tree_sitter_ruby::LANGUAGE.into()),
+            Language::Swift => Some(tree_sitter_swift::LANGUAGE.into()),
+            Language::Kotlin => None, // Temporarily disabled - needs different tree-sitter-kotlin integration
             Language::Unknown => None,
         }
     }
@@ -74,6 +83,9 @@ impl std::fmt::Display for Language {
             Language::CSharp => "csharp",
             Language::Java => "java",
             Language::Php => "php",
+            Language::Ruby => "ruby",
+            Language::Swift => "swift",
+            Language::Kotlin => "kotlin",
             Language::Unknown => "unknown",
         };
         write!(f, "{}", s)
@@ -375,6 +387,30 @@ fn complexity_branch_kinds(lang: Language) -> &'static [&'static str] {
             "case_statement",
             "conditional_expression",
         ],
+        Language::Ruby => &[
+            "if", "elsif", "unless", "case", "for", "while", "until", "rescue", "ensure", "lambda",
+        ],
+        Language::Swift => &[
+            "if_statement",
+            "guard_statement",
+            "else_clause",
+            "switch_case",
+            "for_statement",
+            "while_statement",
+            "repeat_while_statement",
+            "catch_clause",
+            "closure_expression",
+        ],
+        Language::Kotlin => &[
+            "if_expression",
+            "else",
+            "when_entry",
+            "for_statement",
+            "while_statement",
+            "do_while_statement",
+            "try_catch",
+            "lambda_literal",
+        ],
         Language::Unknown => &[],
     }
 }
@@ -411,6 +447,18 @@ fn function_node_kinds(lang: Language) -> &'static [&'static str] {
             "lambda_expression",
         ],
         Language::Php => &["function_definition", "method_declaration"],
+        Language::Ruby => &["method", "singleton_method", "lambda"],
+        Language::Swift => &[
+            "function_declaration",
+            "init_declaration",
+            "closure_expression",
+            "subscript_declaration",
+        ],
+        Language::Kotlin => &[
+            "function_declaration",
+            "lambda_literal",
+            "anonymous_function",
+        ],
         Language::Unknown => &[],
     }
 }
@@ -418,8 +466,17 @@ fn function_node_kinds(lang: Language) -> &'static [&'static str] {
 /// Name-extracting child field per language.
 fn function_name_field(lang: Language) -> &'static str {
     match lang {
-        Language::Rust | Language::Python | Language::JavaScript | Language::TypeScript => "name",
-        Language::Go | Language::CSharp | Language::Java | Language::Php => "name",
+        Language::Rust
+        | Language::Python
+        | Language::JavaScript
+        | Language::TypeScript
+        | Language::Go
+        | Language::CSharp
+        | Language::Java
+        | Language::Php
+        | Language::Ruby
+        | Language::Swift
+        | Language::Kotlin => "name",
         Language::C | Language::Cpp => "declarator",
         Language::Unknown => "name",
     }
@@ -546,7 +603,15 @@ fn has_doc_comment_before(source: &str, line: usize, lang: Language) -> bool {
             | Language::Cpp
             | Language::CSharp
             | Language::Java
-            | Language::Php => trimmed.starts_with("//") || trimmed.starts_with("/*"),
+            | Language::Php
+            | Language::Ruby
+            | Language::Swift
+            | Language::Kotlin => {
+                trimmed.starts_with("//")
+                    || trimmed.starts_with("/*")
+                    || trimmed.starts_with("///")
+                    || trimmed.starts_with("/**")
+            }
             Language::Unknown => false,
         };
         return is_doc;
@@ -617,6 +682,25 @@ fn public_item_kinds(lang: Language) -> &'static [&'static str] {
             "function_definition",
             "class_declaration",
             "interface_declaration",
+        ],
+        Language::Ruby => &["method", "singleton_method", "class", "module"],
+        Language::Swift => &[
+            "function_declaration",
+            "class_declaration",
+            "struct_declaration",
+            "enum_declaration",
+            "protocol_declaration",
+            "extension_declaration",
+            "init_declaration",
+            "subscript_declaration",
+        ],
+        Language::Kotlin => &[
+            "function_declaration",
+            "class_declaration",
+            "interface_declaration",
+            "object_declaration",
+            "property_declaration",
+            "companion_object",
         ],
         Language::Unknown => &[],
     }
@@ -881,6 +965,9 @@ fn import_node_kinds(lang: Language) -> &'static [&'static str] {
             "require_expression",
             "use_declaration",
         ],
+        Language::Ruby => &["require", "require_relative", "load", "include"],
+        Language::Swift => &["import_declaration"],
+        Language::Kotlin => &["import_header", "import_list", "import_alias"],
         Language::Unknown => &[],
     }
 }
@@ -1017,6 +1104,42 @@ fn extract_import_target(node: Node<'_>, source_bytes: &[u8], lang: Language) ->
             }
             None
         }
+        Language::Ruby => {
+            // `require "gem"`, `require_relative "./file"`, `load "file.rb"`, `include Module`
+            let text = node_text(node, source_bytes).trim().to_string();
+            if text.starts_with("require ")
+                || text.starts_with("require_relative ")
+                || text.starts_with("load ")
+            {
+                if let Some(start) = text.find('"') {
+                    if let Some(end) = text[start + 1..].find('"') {
+                        return Some(text[start + 1..start + 1 + end].to_string());
+                    }
+                }
+            }
+            if text.starts_with("include ") {
+                if let Some(stripped) = text.strip_prefix("include ") {
+                    return Some(stripped.trim().to_string());
+                }
+            }
+            None
+        }
+        Language::Swift => {
+            // `import Foundation`
+            let text = node_text(node, source_bytes).trim().to_string();
+            if let Some(stripped) = text.strip_prefix("import ") {
+                return Some(stripped.trim().to_string());
+            }
+            None
+        }
+        Language::Kotlin => {
+            // `import package.Class` or `import package.*`
+            let text = node_text(node, source_bytes).trim().to_string();
+            if let Some(stripped) = text.strip_prefix("import ") {
+                return Some(stripped.trim().to_string());
+            }
+            None
+        }
         Language::Unknown => None,
     }
 }
@@ -1117,6 +1240,31 @@ mod tests {
     }
 
     #[test]
+    fn test_detect_ruby() {
+        assert_eq!(Language::from_extension("app.rb"), Language::Ruby);
+    }
+
+    #[test]
+    fn test_detect_swift() {
+        assert_eq!(
+            Language::from_extension("AppDelegate.swift"),
+            Language::Swift
+        );
+    }
+
+    #[test]
+    fn test_detect_kotlin() {
+        assert_eq!(
+            Language::from_extension("MainActivity.kt"),
+            Language::Kotlin
+        );
+        assert_eq!(
+            Language::from_extension("build.gradle.kts"),
+            Language::Kotlin
+        );
+    }
+
+    #[test]
     fn test_detect_unknown() {
         assert_eq!(Language::from_extension("Makefile"), Language::Unknown);
     }
@@ -1188,6 +1336,63 @@ fn classify(x: i32) -> &'static str {
         assert_eq!(funcs.len(), 1);
         assert_eq!(funcs[0].name, "add");
         assert_eq!(funcs[0].complexity, 1);
+    }
+
+    // ── Complexity — Ruby ─────────────────────
+
+    #[test]
+    fn test_ruby_complexity() {
+        let src = "def add(a, b)\n  a + b\nend\n";
+        let funcs = parse_complexity(src, "test.rb", Language::Ruby);
+        assert_eq!(funcs.len(), 1);
+        assert_eq!(funcs[0].name, "add");
+        assert_eq!(funcs[0].complexity, 1);
+    }
+
+    #[test]
+    fn test_ruby_complexity_branching() {
+        let src = "def classify(x)\n  if x > 0\n    'positive'\n  elsif x < 0\n    'negative'\n  else\n    'zero'\n  end\nend\n";
+        let funcs = parse_complexity(src, "test.rb", Language::Ruby);
+        assert!(!funcs.is_empty());
+        assert!(funcs[0].complexity >= 2);
+    }
+
+    // ── Complexity — Swift ────────────────────
+
+    #[test]
+    fn test_swift_complexity() {
+        let src = "func add(a: Int, b: Int) -> Int { return a + b }\n";
+        let funcs = parse_complexity(src, "test.swift", Language::Swift);
+        assert_eq!(funcs.len(), 1);
+        assert_eq!(funcs[0].name, "add");
+        assert_eq!(funcs[0].complexity, 1);
+    }
+
+    #[test]
+    fn test_swift_complexity_branching() {
+        let src = "func classify(_ x: Int) -> String {\n  if x > 0 {\n    return \"positive\"\n  } else if x < 0 {\n    return \"negative\"\n  } else {\n    return \"zero\"\n  }\n}\n";
+        let funcs = parse_complexity(src, "test.swift", Language::Swift);
+        assert!(!funcs.is_empty());
+        assert!(funcs[0].complexity >= 2);
+    }
+
+    // ── Complexity — Kotlin ───────────────────
+
+    #[test]
+    fn test_kotlin_complexity() {
+        let src = "fun add(a: Int, b: Int): Int = a + b\n";
+        let funcs = parse_complexity(src, "test.kt", Language::Kotlin);
+        assert_eq!(funcs.len(), 1);
+        assert_eq!(funcs[0].name, "add");
+        assert_eq!(funcs[0].complexity, 1);
+    }
+
+    #[test]
+    fn test_kotlin_complexity_branching() {
+        let src = "fun classify(x: Int): String {\n  return when {\n    x > 0 -> \"positive\"\n    x < 0 -> \"negative\"\n    else -> \"zero\"\n  }\n}\n";
+        let funcs = parse_complexity(src, "test.kt", Language::Kotlin);
+        assert!(!funcs.is_empty());
+        assert!(funcs[0].complexity >= 2);
     }
 
     // ── Doc coverage — Rust ──────────────────
@@ -1286,5 +1491,37 @@ import { useState } from 'react';
         let imports = parse_imports(src, "test.go", Language::Go);
         assert!(!imports.is_empty());
         assert!(imports.iter().any(|i| i.imported_module == "fmt"));
+    }
+
+    // ── Imports — Ruby ────────────────────────
+
+    #[test]
+    fn test_ruby_imports() {
+        let src = "require 'json'\nrequire_relative './utils'\ninclude Enumerable\n";
+        let imports = parse_imports(src, "test.rb", Language::Ruby);
+        assert!(!imports.is_empty());
+        assert!(imports.iter().any(|i| i.imported_module.contains("json")));
+    }
+
+    // ── Imports — Swift ───────────────────────
+
+    #[test]
+    fn test_swift_imports() {
+        let src = "import Foundation\nimport UIKit\n";
+        let imports = parse_imports(src, "test.swift", Language::Swift);
+        assert!(!imports.is_empty());
+        assert!(imports.iter().any(|i| i.imported_module == "Foundation"));
+    }
+
+    // ── Imports — Kotlin ──────────────────────
+
+    #[test]
+    fn test_kotlin_imports() {
+        let src = "import java.util.List\nimport kotlin.math.max\n";
+        let imports = parse_imports(src, "test.kt", Language::Kotlin);
+        assert!(!imports.is_empty());
+        assert!(imports
+            .iter()
+            .any(|i| i.imported_module == "java.util.List"));
     }
 }
