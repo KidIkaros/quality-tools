@@ -903,22 +903,15 @@ fn parse_rust_fn_sig(
     line: usize,
     harnesses: &HashSet<String>,
 ) -> Option<FuzzableFunction> {
-    // Extract function name
-    let after_fn = if let Some(pos) = sig.find("fn ") {
-        &sig[pos + 3..]
-    } else {
-        return None;
-    };
-
-    let name_end = after_fn
-        .find(|c: char| c == '(' || c.is_whitespace())
-        .unwrap_or(after_fn.len());
-    let name = after_fn[..name_end].trim().to_string();
+    let after_fn = sig.find("fn ")?;
+    let after = &sig[after_fn + 3..];
+    let name_end = after.find('(')?;
+    let name = after[..name_end].trim().to_string();
 
     // Extract parameters
-    let params_start = after_fn.find('(')?;
-    let params_end = after_fn.rfind(')')?;
-    let params_str = &after_fn[params_start + 1..params_end];
+    let params_start = sig.find('(')?;
+    let params_end = sig.rfind(')')?;
+    let params_str = &sig[params_start + 1..params_end];
 
     let params: Vec<String> = if params_str.is_empty() {
         vec![]
