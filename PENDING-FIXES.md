@@ -165,3 +165,8 @@
 1. Fix code duplication in ast-parse-ts
 2. Address other high CRAP score functions
 3. Make visible progress
+## MOVING ON: Code Duplication in ast-parse-ts
+
+**Issue:** Many repeated patterns across language parsers
+**Goal:** Create shared helper functions for common patterns
+**Status:** Starting now...
