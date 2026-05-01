@@ -517,18 +517,22 @@ fn run_cargo_test_with_timeout(crate_root: &Path, timeout_secs: u64) -> TestOutc
     // Pass --target-dir explicitly so the scratch crate reuses the host build cache.
     // This avoids recompiling everything from scratch for each mutant.
     let target_dir = home_target_dir();
-    let child = match std::process::Command::new("cargo")
-        .args([
-            "test",
-            "--quiet",
-            "--target-dir",
-            target_dir.to_str().unwrap_or("target"),
-        ])
-        .current_dir(crate_root)
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .spawn()
-    {
+
+    // Limit parallelism to prevent OOM - critical fix!
+    let mut cmd = std::process::Command::new("cargo");
+    cmd.env("CARGO_BUILD_JOBS", "1"); // Prevent parallel compilation OOM
+    cmd.env("RUST_TEST_THREADS", "1"); // Prevent parallel test OOM
+    cmd.args([
+        "test",
+        "--quiet",
+        "--target-dir",
+        target_dir.to_str().unwrap_or("target"),
+    ]);
+    cmd.current_dir(crate_root);
+    cmd.stdout(std::process::Stdio::piped());
+    cmd.stderr(std::process::Stdio::piped());
+
+    let child = match cmd.spawn() {
         Ok(c) => c,
         Err(e) => return TestOutcome::Error(format!("Failed to spawn cargo: {}", e)),
     };
