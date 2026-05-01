@@ -1160,15 +1160,7 @@ fn parse_js_fn_sig(sig: &str, file: &str, line: usize) -> Option<FuzzableFunctio
 }
 
 fn parse_go_fn_sig(sig: &str, file: &str, line: usize) -> Option<FuzzableFunction> {
-    // Extract function name
-    let after_func = if let Some(pos) = sig.find("func ") {
-        &sig[pos + 5..]
-    } else {
-        return None;
-    };
-
-    let name_end = after_func.find('(')?;
-    let name = after_func[..name_end].trim().to_string();
+    let name = extract_fn_name(sig, &["func "])?;
 
     // Extract parameters
     let params_start = sig.find('(')?;
