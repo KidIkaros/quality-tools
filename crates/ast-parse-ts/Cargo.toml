@@ -24,6 +24,5 @@ tree-sitter-php = "0.24"
 tree-sitter-ruby = "0.23"
 tree-sitter-swift = "0.7"
 tree-sitter-kotlin = "0.3"
-tree-sitter-language = "0.1"
 
 [dev-dependencies]

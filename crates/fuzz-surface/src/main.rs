@@ -1085,6 +1085,30 @@ fn estimate_go_complexity(sig: &str) -> u32 {
     complexity
 }
 
+/// Generate guided hints for fuzzable functions
+fn get_fuzz_hint(f: &FuzzableFunction) -> String {
+    if f.has_harness {
+        "Already has fuzz harness. Consider expanding test cases.".to_string()
+    } else if f.score >= 30 {
+        format!(
+            "High priority: Add fuzz harness (score: {}). Use cargo-fuzz or similar framework. Start with boundary values.",
+            f.score
+        )
+    } else if f.score >= 20 {
+        format!(
+            "Medium priority: Consider fuzzing (score: {}). Good candidate for property-based testing.",
+            f.score
+        )
+    } else if !f.is_public {
+        "Private function. Consider if it should be public for testing.".to_string()
+    } else {
+        format!(
+            "Low priority: Score {} is acceptable. Monitor for complexity growth.",
+            f.score
+        )
+    }
+}
+
 fn find_rs_files(dir: &Path, recursive: bool) -> Vec<PathBuf> {
     let mut files = Vec::new();
     if let Ok(entries) = std::fs::read_dir(dir) {
@@ -1105,11 +1129,12 @@ fn output_table(display: &[FuzzableFunction], all: &[FuzzableFunction]) {
     println!("{}", separator(95));
 
     let columns = [
-        Column::left("FUNCTION", 30),
-        Column::left("FILE", 25),
+        Column::left("FUNCTION", 25),
+        Column::left("FILE", 20),
         Column::right("LINE", 5),
         Column::right("SCORE", 6),
-        Column::left("PARAMS", 20),
+        Column::left("PARAMS", 15),
+        Column::left("HINT", 40),
     ];
     print_table_header(&columns);
 
@@ -1120,7 +1145,9 @@ fn output_table(display: &[FuzzableFunction], all: &[FuzzableFunction]) {
         let name_with_icons = format!("{} {} {}", harness_icon, pub_icon, f.name);
         let line_str = f.line.to_string();
         let score_str = f.score.to_string();
-        let file_short = truncate(&f.file, 24);
+        let file_short = truncate(&f.file, 19);
+        let hint = get_fuzz_hint(f);
+        let hint_truncated = if hint.len() > 37 { &hint[0..37] } else { &hint };
 
         print_table_row(
             &columns,
@@ -1129,7 +1156,8 @@ fn output_table(display: &[FuzzableFunction], all: &[FuzzableFunction]) {
                 &file_short,
                 &line_str,
                 &score_str,
-                &truncate(&params_str, 19),
+                &truncate(&params_str, 14),
+                hint_truncated,
             ],
         );
     }

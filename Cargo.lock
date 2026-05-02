@@ -103,7 +103,6 @@ dependencies = [
  "tree-sitter-java",
  "tree-sitter-javascript",
  "tree-sitter-kotlin",
- "tree-sitter-language",
  "tree-sitter-php",
  "tree-sitter-python",
  "tree-sitter-ruby",
