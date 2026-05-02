@@ -1,6 +1,6 @@
 # quality-tools
 
-![Quality Audit](https://github.com/your-org/quality-tools/actions/workflows/quality.yml/badge.svg)
+![Quality Audit](https://github.com/KidIkaros/quality-tools/actions/workflows/quality.yml/badge.svg)
 [![Docs](https://img.shields.io/badge/docs-available-brightgreen)](./docs/)
 [![ONBOARDING](https://img.shields.io/badge/onboarding-available-brightgreen)](./ONBOARDING.md)
 [![Rust](https://img.shields.io/badge/Rust-1.75%2B-orange)](https://rust-lang.org)

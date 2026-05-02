@@ -563,7 +563,7 @@ pub fn parse_complexity(source: &str, file: &str, lang: Language) -> Vec<Functio
                 .map(|n| node_text(n, source_bytes).to_string())
                 .unwrap_or_else(|| "<anonymous>".to_string());
 
-            let complexity = 1 + count_branches(func_node, branch_kinds);
+            let complexity = 1u32.saturating_add(count_branches(func_node, branch_kinds));
             let line = node_start_line(func_node);
             let end_line = node_end_line(func_node);
 
