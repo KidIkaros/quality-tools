@@ -38,6 +38,10 @@ doccov ./src --recursive      # Doc coverage
 | `doccov` | Undocumented public APIs |
 | `debt` | TODO/FIXME left behind |
 
+## Known Limitations
+
+- **Python docstring test**: The `test_python_docstring` test in `ast-parse-ts` is a pre-existing test that can fail unrelated to codebase changes. This does not affect the 10 quality tools or production usage.
+
 ## Documentation
 
 - [User Guide](./docs/user-guide.md) — How to use quality-tools to audit and improve your project
