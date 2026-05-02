@@ -1,0 +1,13 @@
+Technical debt scanner -- track TODO/FIXME/HACK/XXX markers
+
+Usage: debt [OPTIONS] <PATH>
+
+Arguments:
+  <PATH>  Path to scan (file or directory)
+
+Options:
+  -r, --recursive        Recursive scan
+  -f, --format <FORMAT>  Output format: table (default), json, or ndjson [default: table]
+      --marker <MARKER>  Only show markers of this type (comma-separated: todo,fixme,hack,xxx)
+  -s, --sort <SORT>      Sort by: age (default), file, type, author [default: age]
+  -h, --help             Print help

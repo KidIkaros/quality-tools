@@ -26,7 +26,7 @@ jobs:
       - name: Upload release binaries
         uses: actions/upload-artifact@v4
         with:
-          name: quality-bins
+          name: codemetrics-bins
           path: |
             target/release/debt
             target/release/doccov
@@ -35,7 +35,7 @@ jobs:
             target/release/riskmap
             target/release/dupfind
             target/release/propcov
-            target/release/quality
+            target/release/codemetrics
             target/release/mutate
             target/release/fuzz
             target/release/taint
@@ -71,7 +71,7 @@ jobs:
       - name: Download release binaries
         uses: actions/download-artifact@v4
         with:
-          name: quality-bins
+          name: codemetrics-bins
           path: target/release/
       - name: Mark binaries executable
         run: chmod +x target/release/*
@@ -97,7 +97,7 @@ jobs:
       - name: Run quality self-audit
         run: |
           # Run batch audit; exit 1 if any tool regresses vs baseline
-          ./target/release/quality run . --format sarif \
+          ./target/release/codemetrics run . --format sarif \
             --baseline .quality-baseline.sarif \
             > quality-results.sarif
           # Check if SARIF indicates new issues (non-zero exit if regression)
@@ -144,7 +144,7 @@ jobs:
         run: |
           mv quality-results.sarif .quality-baseline.sarif
           # Also record metrics history
-          ./target/release/quality history record
+          ./target/release/codemetrics history record
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .quality-baseline.sarif .quality-history/ || true

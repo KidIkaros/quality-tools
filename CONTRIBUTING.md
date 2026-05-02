@@ -1,6 +1,6 @@
-# Contributing to quality-tools
+# Contributing to CodeMetrics
 
-Thank you for your interest in contributing to quality-tools! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to CodeMetrics! This document provides guidelines and instructions for contributing.
 
 ## Development Setup
 
@@ -18,7 +18,7 @@ cargo build
 cargo build --release
 
 # If build path doesn't support exec permissions (e.g., FAT32)
-CARGO_TARGET_DIR=/tmp/quality-tools-build cargo build
+CARGO_TARGET_DIR=/tmp/CodeMetrics-build cargo build
 ```
 
 ### Testing
@@ -51,9 +51,9 @@ cargo clippy -- -D warnings
 ## How to Contribute
 
 ### Reporting Bugs
-- Use the [GitHub Issues](https://github.com/your-repo/quality-tools/issues) tracker
+- Use the [GitHub Issues](https://github.com/your-repo/CodeMetrics/issues) tracker
 - Include steps to reproduce, expected behavior, and actual behavior
-- Mention your OS, Rust version, and quality-tools version
+- Mention your OS, Rust version, and CodeMetrics version
 
 ### Suggesting Enhancements
 - Open an issue with the "enhancement" label

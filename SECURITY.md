@@ -9,12 +9,12 @@ We take security seriously and strive to promptly address security vulnerabiliti
 | < 0.1   | :x:                |
 
 ## Reporting a Vulnerability
-If you discover a security vulnerability in quality-tools, please report it responsibly.
+If you discover a security vulnerability in CodeMetrics, please report it responsibly.
 
 ### How to Report
 **Please DO NOT report security vulnerabilities through public GitHub issues.**
 
-Instead, please report them via email to: [INSERT SECURITY EMAIL]
+Instead, please report them via email to: kidikaros@proton.me
 
 ### What to Include
 Please include the following information in your report:
@@ -44,7 +44,7 @@ Please include the following information in your report:
 - Public disclosure happens after a fix is available and users have had reasonable time to update
 
 ## Security Best Practices for Contributors
-When contributing to quality-tools, please keep these security considerations in mind:
+When contributing to CodeMetrics, please keep these security considerations in mind:
 
 ### Code Review Checklist
 - [ ] Input validation: Are all user inputs properly validated?
@@ -79,8 +79,8 @@ We regularly update dependencies to patch known vulnerabilities. You can help by
 
 ## Known Security Considerations
 
-### quality-tools Security Model
-- quality-tools is a CLI tool that analyzes source code
+### CodeMetrics Security Model
+- CodeMetrics is a CLI tool that analyzes source code
 - It runs locally on the user's machine
 - It does not expose network services (except quality-server, which is optional)
 - It reads source files and produces reports
@@ -98,6 +98,6 @@ We regularly update dependencies to patch known vulnerabilities. You can help by
 - quality-server is designed for local/trusted network use only
 
 ## Contact
-For security-related questions or concerns, contact: [INSERT SECURITY EMAIL]
+For security-related questions or concerns, contact: kidikaros@proton.me
 
-For general questions, please use [GitHub Issues](https://github.com/your-repo/quality-tools/issues).
+For general questions, please use [GitHub Issues](https://github.com/your-repo/CodeMetrics/issues).

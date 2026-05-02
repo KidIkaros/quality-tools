@@ -31,7 +31,7 @@ Project maintainers have the right and responsibility to remove, edit, or reject
 This Code of Conduct applies within all project spaces, and also applies when an individual is officially representing the project in public spaces. Examples of representing our project include using an official e-mail address, posting via an official social media account, or acting as an appointed representative at an online or offline event.
 
 ## Enforcement
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project maintainers responsible for enforcement at [INSERT CONTACT EMAIL]. All complaints will be reviewed and investigated promptly and fairly.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project maintainers responsible for enforcement at kidikaros@proton.me. All complaints will be reviewed and investigated promptly and fairly.
 
 All project maintainers are obligated to respect the privacy and security of the reporter of any incident.
 

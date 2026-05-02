@@ -1,6 +1,6 @@
 # Quality Standards — "Exceeding Standards" Definition
 
-These are the strict quality targets that all projects using quality-tools should meet. The tools themselves are held to these same standards.
+These are the strict quality targets that all projects using CodeMetrics should meet. The tools themselves are held to these same standards.
 
 ## Metric Targets
 

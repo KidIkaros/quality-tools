@@ -10,7 +10,7 @@ use std::sync::{
 use std::thread;
 use std::time::Duration;
 
-use quality_common::{print_table_header, print_table_row, separator, wrap_tool_response, Column};
+use codemetrics_common::{print_table_header, print_table_row, separator, wrap_tool_response, Column};
 
 mod delta;
 
@@ -1568,7 +1568,7 @@ fn output_table(results: &[MutantResult]) {
         ("Mutation Score:", format!("{:.0}%", score)),
         ("Verdict:", verdict.to_string()),
     ];
-    quality_common::print_summary(&summary);
+    codemetrics_common::print_summary(&summary);
 
     if timeout > 0 {
         println!("  Timeout:        {}", timeout);
@@ -1682,7 +1682,7 @@ fn output_table_streaming(
         ("Mutation Score:", format!("{:.0}%", score)),
         ("Verdict:", verdict.to_string()),
     ];
-    quality_common::print_summary(&summary);
+    codemetrics_common::print_summary(&summary);
 
     if timeouts > 0 {
         println!("  Timeout:        {}", timeouts);

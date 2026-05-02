@@ -1,0 +1,41 @@
+Memory monitor initialized with limit: 26110697 MB
+Running tool: debt
+✓ Completed: debt (3476 ms)
+Running tool: doccov
+✓ Completed: doccov (1357 ms)
+Running tool: crap
+✓ Completed: crap (540 ms)
+Running tool: coupling
+✓ Completed: coupling (600 ms)
+Running tool: riskmap
+✓ Completed: riskmap (531 ms)
+Running tool: dupfind
+✓ Completed: dupfind (648 ms)
+Running tool: propcov
+✓ Completed: propcov (421 ms)
+Running tool: taint
+✓ Completed: taint (415 ms)
+Running tool: fuzz
+✓ Completed: fuzz (997 ms)
+Running tool: mutate
+✓ Completed: mutate (11751 ms)
+
+═══════════════════════════════════════════
+  QUALITY BATCH REPORT
+  Run ID: (table mode)
+  Duration: 20743ms
+═══════════════════════════════════════════
+  debt            PASS     3476ms
+  doccov          PASS     1357ms
+  crap            PASS      540ms
+  coupling        PASS      600ms
+  riskmap         PASS      531ms
+  dupfind         PASS      648ms
+  propcov         PASS      421ms
+  taint           PASS      415ms
+  fuzz            PASS      997ms
+  mutate          PASS    11751ms
+───────────────────────────────────────────
+  Total: 10  Passed: 10  Failed: 0
+═══════════════════════════════════════════
+

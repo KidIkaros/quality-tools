@@ -5,9 +5,9 @@ use serde::Serialize;
 use std::time::Instant;
 
 use ast_parse_ts::{parse_complexity_file, parse_doc_coverage_file, Language};
-use quality_common::memory::MemoryMonitor;
-use quality_common::{crap_score, parse_lcov, CoverageRecord};
-use quality_common::{find_source_files, ToolResult};
+use codemetrics_common::memory::MemoryMonitor;
+use codemetrics_common::{crap_score, parse_lcov, CoverageRecord};
+use codemetrics_common::{find_source_files, ToolResult};
 
 // ═══════════════════════════════════════════
 // CLI DEFINITION
@@ -1148,7 +1148,7 @@ fn main() {
 }
 
 fn run_tool(crate_name: &str, bin_name: &str, args: &[&str], tool_start: Instant) -> ToolResult {
-    use quality_common::*;
+    use codemetrics_common::*;
     use std::process::{Command, Stdio};
 
     let output = Command::new(bin_name)
@@ -1220,7 +1220,7 @@ fn run_batch(
     baseline: Option<&str>,
     no_fail_on_regression: bool,
 ) -> i32 {
-    use quality_common::*;
+    use codemetrics_common::*;
 
     use std::time::Instant;
 

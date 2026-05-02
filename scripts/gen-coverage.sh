@@ -23,7 +23,7 @@ touch "$OUTPUT"
 
 # List of crates (library crates first, then binaries)
 CRATES=(
-    "quality-common"
+    "codemetrics-common"
     "ast-parse"
     "crap-metric"
     "debt-scan"

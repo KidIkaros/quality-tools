@@ -1,4 +1,4 @@
-# Rust formatting configuration for quality-tools
+# Rust formatting configuration for codemetrics
 # 100-character line width for readability
 max_width = 100
 

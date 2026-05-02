@@ -1,6 +1,6 @@
 # UTCP Integration Guide
 
-This document explains how to integrate quality-tools with AI agents using the Universal Tool Calling Protocol (UTCP).
+This document explains how to integrate CodeMetrics with AI agents using the Universal Tool Calling Protocol (UTCP).
 
 ## What is UTCP?
 
@@ -17,14 +17,14 @@ UTCP (Universal Tool Calling Protocol) is a specification that enables AI agents
 
 ### Option 1: UTCP Manual (JSON)
 
-quality-tools provides a UTCP manual at `utcps/quality-tools.json` that defines all tools:
+CodeMetrics provides a UTCP manual at `utcps/CodeMetrics.json` that defines all tools:
 - Tool names and descriptions
 - Call syntax for each tool
 - Input/output schemas
 
 ```bash
 # Fetch the manual
-cat utcps/quality-tools.json
+cat utcps/CodeMetrics.json
 ```
 
 ### Option 2: Discover Command
@@ -62,7 +62,7 @@ Add to `CLAUDE.md` in project root:
 ```markdown
 # Code Quality Tools
 
-This project uses quality-tools. Before significant changes, run:
+This project uses CodeMetrics. Before significant changes, run:
 
 - `cargo run -p quality-cli -- run . --format sarif` for full audit
 - `cargo run -p mutation-test -- . -p <crate> --max 5` to verify tests
@@ -77,7 +77,7 @@ Add to `AGENTS.md` in project root:
 ```markdown
 # Code Quality Tools
 
-Use quality-tools before major changes:
+Use CodeMetrics before major changes:
 
 | Tool | Command |
 |------|---------|
@@ -96,7 +96,7 @@ Use the UTCP manual directly:
 import json
 
 # Load the manual
-with open("utcps/quality-tools.json") as f:
+with open("utcps/CodeMetrics.json") as f:
     manual = json.load(f)
 
 # Find a tool
@@ -146,8 +146,8 @@ cargo run -p crap-metric -- ./src --recursive --min-score 20
 ## See Also
 
 - [UTCP Specification](https://github.com/universal-tool-calling-protocol/utcp-specification)
-- [quality-tools Repository](https://github.com/KidIkaros/quality-tools)
-- `utcps/quality-tools.json` - Tool definitions
+- [CodeMetrics Repository](https://github.com/KidIkaros/codemetrics)
+- `utcps/CodeMetrics.json` - Tool definitions
 - `CLAUDE.md` - Claude Code rules
 - `AGENTS.md` - OpenCode rules
 - `hermes/SKILL.md` - Hermes Agent skill
@@ -158,11 +158,11 @@ Install skill locally for use with Hermes:
 
 ```bash
 # Copy skill to Hermes skills directory
-cp -r hermes/ ~/.hermes/skills/quality-tools
+cp -r hermes/ ~/.hermes/skills/CodeMetrics
 ```
 
 Or reference directly from project when loading:
-- Hermes will auto-discover quality-tools when in `~/.hermes/skills/`
+- Hermes will auto-discover CodeMetrics when in `~/.hermes/skills/`
 
 Skill features:
 - Automatic terminal tool passthrough

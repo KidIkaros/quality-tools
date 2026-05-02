@@ -1,6 +1,6 @@
 # Code Quality Tools
 
-This project uses **quality-tools** for automated code quality analysis. All AI collaborators should use these tools when requested or when making significant code changes.
+This project uses **codemetrics** for automated code quality analysis. All AI collaborators should use these tools when requested or when making significant code changes.
 
 ## Quick Reference
 
@@ -11,12 +11,12 @@ This project uses **quality-tools** for automated code quality analysis. All AI 
 | `debt` | Find TODOs/FIXMEs | `cargo run -p debt-scan -- ./src --recursive` |
 | `riskmap` | Complex/churned files | `cargo run -p risk-map -- .` |
 | `doccov` | Doc coverage | `cargo run -p doc-coverage -- ./src --recursive` |
-| `quality` | Full audit | `cargo run -p quality-cli -- run . --format sarif` |
+| `quality` | Full audit | `cargo run -p codemetrics-cli -- run . --format sarif` |
 
 ## When to Use
 
 - **Before PR**: Run `mutate . -p <crate> --max 5` to verify tests catch mutants
-- **After major changes**: Run `cargo run -p quality-cli -- run . --format sarif`
+- **After major changes**: Run `cargo run -p codemetrics-cli -- run . --format sarif`
 - **Finding bugs**: Use `riskmap` to identify high-risk files
 - **Documentation task**: Use `doccov` to check coverage
 
@@ -49,5 +49,5 @@ cargo build --release  # Builds all tools
 
 ## See Also
 
-- `utcps/quality-tools.json` - UTCP manual for tool definitions
+- `utcps/codemetrics.json` - UTCP manual for tool definitions
 - `docs/quality-standards.md` - Quality targets and gates

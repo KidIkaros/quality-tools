@@ -224,6 +224,42 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9"
 
 [[package]]
+name = "codemetrics-cli"
+version = "0.1.0"
+dependencies = [
+ "ast-parse-ts",
+ "clap",
+ "codemetrics-common",
+ "notify",
+ "serde",
+ "serde_json",
+ "syn",
+]
+
+[[package]]
+name = "codemetrics-common"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "clap",
+ "serde",
+ "serde_json",
+ "uuid",
+]
+
+[[package]]
+name = "codemetrics-server"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "codemetrics-common",
+ "serde",
+ "serde_json",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "colorchoice"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -242,8 +278,8 @@ dependencies = [
  "assert_cmd",
  "ast-parse-ts",
  "clap",
+ "codemetrics-common",
  "predicates",
- "quality-common",
  "rayon",
  "serde",
  "serde_json",
@@ -256,8 +292,8 @@ dependencies = [
  "assert_cmd",
  "ast-parse-ts",
  "clap",
+ "codemetrics-common",
  "predicates",
- "quality-common",
  "serde",
  "serde_json",
 ]
@@ -303,8 +339,8 @@ dependencies = [
  "assert_cmd",
  "chrono",
  "clap",
+ "codemetrics-common",
  "predicates",
- "quality-common",
  "serde",
  "serde_json",
 ]
@@ -322,8 +358,8 @@ dependencies = [
  "assert_cmd",
  "ast-parse-ts",
  "clap",
+ "codemetrics-common",
  "predicates",
- "quality-common",
  "serde",
  "serde_json",
 ]
@@ -335,8 +371,8 @@ dependencies = [
  "assert_cmd",
  "ast-parse-ts",
  "clap",
+ "codemetrics-common",
  "predicates",
- "quality-common",
  "rayon",
  "serde",
  "serde_json",
@@ -411,7 +447,7 @@ version = "0.1.0"
 dependencies = [
  "ast-parse-ts",
  "clap",
- "quality-common",
+ "codemetrics-common",
  "serde",
  "serde_json",
 ]
@@ -619,9 +655,9 @@ version = "0.1.0"
 dependencies = [
  "assert_cmd",
  "clap",
+ "codemetrics-common",
  "libc",
  "predicates",
- "quality-common",
  "serde",
  "serde_json",
 ]
@@ -740,46 +776,10 @@ dependencies = [
  "assert_cmd",
  "ast-parse-ts",
  "clap",
+ "codemetrics-common",
  "predicates",
- "quality-common",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "quality-cli"
-version = "0.1.0"
-dependencies = [
- "ast-parse-ts",
- "clap",
- "notify",
- "quality-common",
- "serde",
- "serde_json",
- "syn",
-]
-
-[[package]]
-name = "quality-common"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "clap",
- "serde",
- "serde_json",
- "uuid",
-]
-
-[[package]]
-name = "quality-server"
-version = "0.1.0"
-dependencies = [
- "clap",
- "quality-common",
- "serde",
- "serde_json",
- "tokio",
- "uuid",
 ]
 
 [[package]]
@@ -862,8 +862,8 @@ dependencies = [
  "assert_cmd",
  "ast-parse-ts",
  "clap",
+ "codemetrics-common",
  "predicates",
- "quality-common",
  "serde",
  "serde_json",
 ]
@@ -989,8 +989,8 @@ dependencies = [
  "assert_cmd",
  "ast-parse-ts",
  "clap",
+ "codemetrics-common",
  "predicates",
- "quality-common",
  "rayon",
  "serde",
  "serde_json",

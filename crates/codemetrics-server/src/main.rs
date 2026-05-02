@@ -1,7 +1,7 @@
 #![deny(clippy::all)]
 
 use clap::Parser;
-use quality_common::{wrap_tool_response, ToolRequest};
+use codemetrics_common::{wrap_tool_response, ToolRequest};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::process::{Command, Stdio};
@@ -9,7 +9,10 @@ use std::time::Instant;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 #[derive(Parser)]
-#[command(name = "quality-server", about = "JSON-RPC daemon for quality tools")]
+#[command(
+    name = "codemetrics-server",
+    about = "JSON-RPC daemon for codemetrics tools"
+)]
 struct Cli {
     /// Transport mode: stdio or tcp
     #[arg(long, default_value = "stdio")]
@@ -383,7 +386,7 @@ async fn run_tcp(port: u16) {
     let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port))
         .await
         .unwrap();
-    println!("quality-server listening on 127.0.0.1:{}", port);
+    println!("codemetrics-server listening on 127.0.0.1:{}", port);
 
     loop {
         let (socket, _) = listener.accept().await.unwrap();

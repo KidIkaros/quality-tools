@@ -1,9 +1,9 @@
 {
   "info": {
-    "name": "quality-tools",
+    "name": "codemetrics",
     "version": "0.1.0",
     "description": "AI-native code quality audit toolkit - 10 tools for automated code analysis. Designed for CI/CD pipelines and AI agents.",
-    "documentation": "https://github.com/KidIkaros/quality-tools",
+    "documentation": "https://github.com/KidIkaros/codemetrics",
     "license": "Apache-2.0 OR OPL-1.1",
     "tags": ["code-quality", "static-analysis", "rust", "metrics", "security"]
   },
@@ -341,7 +341,7 @@
       "tags": ["batch", "full-audit", "ci"],
       "average_response_size": 4096,
       "call": {
-        "syntax": "cargo run -p quality-cli -- run {path} --format {format}",
+        "syntax": "cargo run -p codemetrics-cli -- run {path} --format {format}",
         "protocol": "cli",
         "cwd": "{project_root}"
       },
@@ -369,7 +369,7 @@
   "examples": [
     {
       "name": "Full audit",
-      "command": "cargo run -p quality-cli -- run . --format sarif > results.sarif"
+      "command": "cargo run -p codemetrics-cli -- run . --format sarif > results.sarif"
     },
     {
       "name": "CRAP score check",

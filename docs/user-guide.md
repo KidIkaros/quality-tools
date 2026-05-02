@@ -1,13 +1,13 @@
-# User Guide — Using quality-tools to Improve Your Project
+# User Guide — Using CodeMetrics to Improve Your Project
 
-This guide shows how to use quality-tools to audit and improve your project's code quality.
+This guide shows how to use CodeMetrics to audit and improve your project's code quality.
 
 ## Quick Start (5 Minutes)
 
-1. **Install quality-tools**:
+1. **Install CodeMetrics**:
    ```bash
-   git clone https://github.com/your-repo/quality-tools.git
-   cd quality-tools && cargo build --release
+   git clone https://github.com/your-repo/CodeMetrics.git
+   cd CodeMetrics && cargo build --release
    export PATH="$PWD/target/release:$PATH"
    ```
 

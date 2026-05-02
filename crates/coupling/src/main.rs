@@ -2,7 +2,7 @@
 
 use ast_parse_ts::parse_imports_file;
 use clap::Parser;
-use quality_common::find_source_files;
+use codemetrics_common::find_source_files;
 use rayon::prelude::*;
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};

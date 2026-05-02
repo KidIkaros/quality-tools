@@ -1,6 +1,7 @@
 # CodeMetrics
+<img src="logo.svg" alt="CodeMetrics Logo" width="400"/>
 
-![Quality Audit](https://github.com/KidIkaros/quality-tools/actions/workflows/quality.yml/badge.svg)
+![Quality Audit](https://github.com/KidIkaros/codemetrics/actions/workflows/quality.yml/badge.svg)
 [![Docs](https://img.shields.io/badge/docs-available-brightgreen)](./docs/)
 [![ONBOARDING](https://img.shields.io/badge/onboarding-available-brightgreen)](./ONBOARDING.md)
 [![Rust](https://img.shields.io/badge/Rust-1.75%2B-orange)](https://rust-lang.org)
@@ -17,12 +18,12 @@
 
 ```bash
 # Full audit with SARIF output (GitHub Security tab compatible)
-quality run . --format sarif > results.sarif
+codemetrics run . --format sarif > results.sarif
 
 # Single tool
-crap ./src --recursive           # CRAP risk scoring
-mutate . -p my-crate --max-mutants 5  # Mutation testing
-doccov ./src --recursive      # Doc coverage
+codemetrics crap ./src --recursive           # CRAP risk scoring
+codemetrics mutate . -p my-crate --max-mutants 5  # Mutation testing
+codemetrics doccov ./src --recursive      # Doc coverage
 ```
 
 ### Why CodeMetrics?
@@ -42,7 +43,7 @@ doccov ./src --recursive      # Doc coverage
 
 ## Documentation
 
-- [User Guide](./docs/user-guide.md) — How to use quality-tools to audit and improve your project
+- [User Guide](./docs/user-guide.md) — How to use CodeMetrics to audit and improve your project
 - [Developer Guide](./docs/developer-guide.md) — Architecture, adding new tools, testing patterns
 - [Metrics Explained](./docs/metrics-explained.md) — Detailed metric definitions, what scores mean, how to fix
 - [Quality Standards](./docs/quality-standards.md) — "Exceeding Standards" targets and quality gates
@@ -128,25 +129,25 @@ CRAP = comp^2 * (1 - coverage/100)^3 + comp
 
 ```bash
 # Analyze a Rust crate (no coverage data)
-crap ./crates/my-crate/src --recursive
+codemetrics crap ./crates/my-crate/src --recursive
 
 # Analyze Python files
-crap ./my-python-project --recursive
+codemetrics crap ./my-python-project --recursive
 
 # Analyze TypeScript files
-crap ./my-web-app --recursive
+codemetrics crap ./my-web-app --recursive
 
 # With lcov coverage file
-crap ./crates/my-crate/src --recursive --coverage coverage.info
+codemetrics crap ./crates/my-crate/src --recursive --coverage coverage.info
 
 # With coverage override
-crap ./crates/my-crate/src --recursive --coverage-pct 75
+codemetrics crap ./crates/my-crate/src --recursive --coverage-pct 75
 
 # JSON output
-crap ./crates/my-crate/src --recursive --format json
+codemetrics crap ./crates/my-crate/src --recursive --format json
 
 # Only show high-risk functions
-crap ./crates/my-crate/src --recursive --min-score 20
+codemetrics crap ./crates/my-crate/src --recursive --min-score 20
 ```
 
 ### Output
@@ -174,16 +175,16 @@ Mutation testing evaluates test suite quality by introducing deliberate changes 
 
 ```bash
 # Test a crate (runs cargo test for each mutant)
-mutate ./crates/my-crate --max-mutants 20
+codemetrics mutate ./crates/my-crate --max-mutants 20
 
 # Test specific files only
-mutate ./crates/my-crate --files src/lib.rs,src/parser.rs
+codemetrics mutate ./crates/my-crate --files src/lib.rs,src/parser.rs
 
 # With custom timeout
-mutate ./crates/my-crate --timeout 60
+codemetrics mutate ./crates/my-crate --timeout 60
 
 # JSON output
-mutate ./crates/my-crate --format json
+codemetrics mutate ./crates/my-crate --format json
 
 # With environment variables (e.g., CARGO_TARGET_DIR for FAT32)
 CARGO_TARGET_DIR=/tmp/build mutate ./crates/my-crate
@@ -211,7 +212,7 @@ SUMMARY
 cargo build
 
 # FAT32 target directory (if build path doesn't support exec permissions)
-CARGO_TARGET_DIR=/tmp/quality-tools-build cargo build
+CARGO_TARGET_DIR=/tmp/CodeMetrics-build cargo build
 
 # Run tests (single crate — safe)
 cargo test
@@ -262,10 +263,10 @@ fuzz ./src --recursive --top 10
 
 ```bash
 # Check public API documentation
-doccov ./src --recursive
+codemetrics doccov ./src --recursive
 
 # Fail if below 80% coverage
-doccov ./src --recursive --min 80
+codemetrics doccov ./src --recursive --min 80
 ```
 
 ### Code Duplication (`dupfind`)
@@ -310,13 +311,13 @@ The `quality` CLI runs all tools in one batch, detects languages automatically, 
 
 ```bash
 # Full audit (auto-detects languages)
-quality run . --format json
+codemetrics run . --format json
 
 # Watch mode — re-run checks on .rs file changes
 quality watch . --checks debt,doc,crap --debounce-ms 500
 
 # Record run to history
-quality run . --format json | quality history record --report /dev/stdin
+codemetrics run . --format json | quality history record --report /dev/stdin
 
 # Show trend history
 quality history show
@@ -329,7 +330,7 @@ quality uninstall-hooks .
 **Multi-language example:**
 ```bash
 # Scan a mixed Python/JS/Rust repo
-quality run ./my-project --format json
+codemetrics run ./my-project --format json
 # → summary.languages_detected: ["javascript", "python", "rust"]
 ```
 
@@ -340,3 +341,38 @@ quality run ./my-project --format json
 ## License
 
 Apache-2.0 OR OPL-1.1
+
+## Crates
+
+| Crate | Type | Description |
+|-------|------|-------------|
+| `codemetrics-cli` | Binary | Main CLI tool (codemetrics binary) |
+| `codemetrics-common` | Library | Shared utilities for all tools |
+| `codemetrics-server` | Binary | HTTP API server |
+| `coupling` | Binary | Code coupling analysis |
+| `crap-metric` | Binary | CRAP score calculation |
+| `debt-scan` | Binary | Technical debt scanning |
+| `doc-coverage` | Binary | Documentation coverage |
+| `duplication` | Binary | Code duplication detection |
+| `fuzz-surface` | Binary | Fuzz testing surface analysis |
+| `mutation-test` | Binary | Mutation testing |
+| `prop-cov` | Binary | Property coverage analysis |
+| `risk-map` | Binary | Risk mapping (complex/churned files) |
+| `taint-scan` | Binary | Taint analysis (sensitive data flow) |
+
+## Example Output
+
+### Full Audit (`codemetrics run . --format table`)
+```
+$(cat docs/screenshots/run-table.txt)
+```
+
+### CRAP Score (`codemetrics crap ./src --recursive`)
+```
+$(cat docs/screenshots/crap-output.txt)
+```
+
+### Technical Debt (`codemetrics debt ./src --recursive`)
+```
+$(cat docs/screenshots/debt-output.txt)
+```

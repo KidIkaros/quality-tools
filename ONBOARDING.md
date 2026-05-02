@@ -1,6 +1,6 @@
 # ONBOARDING - Quickstart Guide
 
-Welcome to quality-tools! This guide will get you up and running in 5 minutes.
+Welcome to CodeMetrics! This guide will get you up and running in 5 minutes.
 
 ## 5-Minute Quickstart
 
@@ -82,4 +82,4 @@ The `quality run` command outputs:
 
 - Check [docs/metrics-explained.md](docs/metrics-explained.md) for metric details
 - Check [docs/developer-guide.md](docs/developer-guide.md) for architecture
-- Open an issue at: https://github.com/IkarosDigital/quality-tools/issues
+- Open an issue at: https://github.com/KidIkaros/codemetrics/issues

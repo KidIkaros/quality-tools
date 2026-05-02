@@ -1,0 +1,16 @@
+# CodeOwners file for CodeMetrics
+# This file controls who is automatically assigned as a reviewer on PRs.
+
+# Default owner for the entire repo
+* @KidIkaros
+
+# Crate-specific owners (update as team grows)
+/crates/codemetrics-common/ @KidIkaros
+/crates/codemetrics-cli/ @KidIkaros
+/crates/codemetrics-server/ @KidIkaros
+
+# Documentation
+/docs/ @KidIkaros
+
+# GitHub workflows
+/.github/ @KidIkaros

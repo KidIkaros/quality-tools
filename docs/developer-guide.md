@@ -1,11 +1,11 @@
-# Developer Guide — Contributing to quality-tools
+# Developer Guide — Contributing to CodeMetrics
 
 This guide explains the project architecture, how to add new tools, and testing patterns.
 
 ## Project Architecture
 
 ```
-quality-tools/
+CodeMetrics/
 ├── crates/
 │   ├── ast-parse-ts/      # Universal AST parsing (tree-sitter)
 │   ├── quality-common/     # Shared utilities (coverage, CRAP, file discovery)

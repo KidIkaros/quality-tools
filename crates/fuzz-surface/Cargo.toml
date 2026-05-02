@@ -10,7 +10,7 @@ name = "fuzz"
 path = "src/main.rs"
 
 [dependencies]
-quality-common = { path = "../quality-common" }
+codemetrics-common = { path = "../codemetrics-common" }
 ast-parse-ts = { path = "../ast-parse-ts" }
 clap = { version = "4", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }

@@ -1,0 +1,14 @@
+CRAP metric calculator — maintenance risk scoring
+
+Usage: crap [OPTIONS] <PATH>
+
+Arguments:
+  <PATH>  Path to analyze (file or directory)
+
+Options:
+  -c, --coverage <COVERAGE>          Path to lcov coverage file
+  -p, --coverage-pct <COVERAGE_PCT>  Coverage percentage override (0-100) if no lcov file
+  -f, --format <FORMAT>              Output format: table (default), json, or ndjson [default: table]
+  -m, --min-score <MIN_SCORE>        Only show functions with CRAP score above this threshold [default: 0]
+  -r, --recursive                    Recursively find .rs files in directory
+  -h, --help                         Print help

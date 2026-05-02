@@ -2,7 +2,7 @@
 
 use ast_parse_ts::Language;
 use clap::Parser;
-use quality_common::{find_source_files, print_table_header, print_table_row, truncate, Column};
+use codemetrics_common::{find_source_files, print_table_header, print_table_row, truncate, Column};
 use rayon::prelude::*;
 use serde::Serialize;
 use std::collections::HashSet;

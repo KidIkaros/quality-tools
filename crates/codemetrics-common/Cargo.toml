@@ -1,9 +1,9 @@
 [package]
-name = "quality-common"
+name = "codemetrics-common"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Shared utilities for quality-tools -- file scanning, output formatting, CLI patterns"
+description = "Shared utilities for codemetrics -- file scanning, output formatting, CLI patterns"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

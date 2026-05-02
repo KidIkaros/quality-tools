@@ -1,5 +1,5 @@
 ---
-name: quality-tools
+name: codemetrics
 description: AI-native code quality audit toolkit - 10 automated tools for CI/CD pipelines and AI agents
 version: 0.1.0
 author: KidIkaros
@@ -13,7 +13,7 @@ metadata:
     fallback_for_tools: []
 ---
 
-# quality-tools
+# codemetrics
 
 Code quality audit toolkit with 10 tools for automated analysis. Designed for CI/CD pipelines and AI agents.
 
@@ -29,7 +29,7 @@ Code quality audit toolkit with 10 tools for automated analysis. Designed for CI
 
 | Tool | Purpose | Command |
 |------|---------|---------|
-| `quality` | Full batch audit | `cargo run -p quality-cli -- run . --format sarif` |
+| `quality` | Full batch audit | `cargo run -p codemetrics-cli -- run . --format sarif` |
 | `crap` | Risk scores | `cargo run -p crap-metric -- ./src --recursive` |
 | `mutate` | Test quality | `cargo run -p mutation-test -- . -p {crate} --max 5` |
 | `riskmap` | High-risk files | `cargo run -p risk-map -- . --min-risk 30` |
@@ -53,10 +53,10 @@ Or install binaries to PATH via `cargo install`.
 
 ```bash
 # Run all 10 tools, output SARIF for GitHub Security tab
-cargo run -p quality-cli -- run . --format sarif > results.sarif
+cargo run -p codemetrics-cli -- run . --format sarif > results.sarif
 
 # Or simpler output
-cargo run -p quality-cli -- run .
+cargo run -p codemetrics-cli -- run .
 ```
 
 ### 2. Quick Risk Check
@@ -120,7 +120,7 @@ cargo run -p debt-scan -- ./src --recursive
 - name: Quality Audit
   run: |
     cargo build --release
-    quality run . --format sarif > results.sarif
+    codemetrics run . --format sarif > results.sarif
 - name: Upload SARIF
   uses: github/codeql-action/upload-sarif@v3
   with:
@@ -159,7 +159,7 @@ cargo run -p crap-metric -- ./src --recursive --min-score 20
 
 ```bash
 # Check all tools work
-cargo run -p quality-cli -- run .
+cargo run -p codemetrics-cli -- run .
 
 # Check specific tool
 cargo run -p crap-metric -- ./src --recursive --format json | head
@@ -167,7 +167,7 @@ cargo run -p crap-metric -- ./src --recursive --format json | head
 
 ## Rules
 
-1. Run full audit (`quality run`) before major merges
+1. Run full audit (`codemetrics run`) before major merges
 2. Fix CRAP > 30 immediately
 3. Use `mutate` to verify test suites catch bugs
 4. Zero tolerance for TODO/FIXME in production code
@@ -175,7 +175,7 @@ cargo run -p crap-metric -- ./src --recursive --format json | head
 
 ## See Also
 
-- Repository: https://github.com/KidIkaros/quality-tools
-- UTCP Manual: `utcps/quality-tools.json`
+- Repository: https://github.com/KidIkaros/codemetrics
+- UTCP Manual: `utcps/codemetrics.json`
 - Claude Code: `CLAUDE.md`
 - OpenCode: `AGENTS.md`

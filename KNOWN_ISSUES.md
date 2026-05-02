@@ -1,6 +1,6 @@
 # Known Issues
 
-This document tracks known issues in the quality-tools codebase.
+This document tracks known issues in the CodeMetrics codebase.
 
 ## Pre-existing Test Failures
 

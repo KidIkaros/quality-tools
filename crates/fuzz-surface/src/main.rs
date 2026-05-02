@@ -2,7 +2,7 @@
 
 use ast_parse_ts::{parse_complexity, Language};
 use clap::Parser;
-use quality_common::{
+use codemetrics_common::{
     find_source_files, print_table_header, print_table_row, separator, truncate, Column,
 };
 use serde::Serialize;

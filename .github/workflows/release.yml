@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Cache cargo build
+        uses: Swatinem/rust-cache@v2
+        
+      - name: Build release binaries
+        run: cargo build --release --workspace
+        
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          cp target/release/codemetrics release-assets/
+          cp target/release/codemetrics-server release-assets/
+          cp target/release/crap release-assets/
+          cp target/release/mutate release-assets/
+          cp target/release/debt release-assets/
+          cp target/release/doccov release-assets/
+          cp target/release/dupfind release-assets/
+          cp target/release/coupling release-assets/
+          cp target/release/riskmap release-assets/
+          cp target/release/fuzz release-assets/
+          cp target/release/taint release-assets/
+          cp target/release/propcov release-assets/
+          ls -la release-assets/
+        
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+          
+      - name: Upload Release Assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release-assets/
+          asset_name: codemetrics-bins
+          asset_content_type: application/octet-stream

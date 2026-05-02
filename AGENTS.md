@@ -12,14 +12,14 @@ This project uses **CodeMetrics** for automated code quality analysis. AI agents
 | **riskmap** | Files changing often AND complex | Identify bug risk |
 | **doccov** | Documentation coverage (%) | Check public API docs |
 | **taint** | Sensitive data flow | Security audit |
-| **quality** | Full batch audit | CI/CD pipeline |
+| **codemetrics** | Full batch audit | CI/CD pipeline |
 
 ## Usage Commands
 
 ### Full Audit (Recommended)
 
 ```
-quality run . --format sarif > results.sarif
+codemetrics run . --format sarif > results.sarif
 ```
 
 ### Individual Tools
@@ -54,5 +54,5 @@ cargo run -p debt-scan -- ./src --recursive
 
 ## See Also
 
-- `utcps/quality-tools.json` - UTCP tool definitions
+- `utcps/codemetrics.json` - UTCP tool definitions
 - `docs/quality-standards.md` - Quality targets and thresholds

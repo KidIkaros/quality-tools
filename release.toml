@@ -1,0 +1,31 @@
+[package]
+name = "CodeMetrics"
+version = "0.1.0"
+# Allowed version increments: major, minor, patch
+tag-name = "v{{version}}"
+tag-message = "Release v{{version}}"
+
+[release]
+# Sign commits
+sign-commit = false
+# Push to remote
+push = true
+# Save release version in:
+# - Cargo.toml workspace.package.version
+consolidate-commits = true
+
+[pre-release]
+# Run before release
+pre-release-hook = ["cargo", "test", "--workspace"]
+
+[release]
+# Run after version bump, before tag
+release-hook = ["cargo", "build", "--release"]
+
+[post-release]
+# Run after tag is created
+post-release-hook = ["git", "push", "--follow-tags"]
+
+[package."*"]
+# All crates use the same version from workspace
+version = "0.1.0"
