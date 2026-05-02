@@ -150,3 +150,21 @@ cargo run -p crap-metric -- ./src --recursive --min-score 20
 - `utcps/quality-tools.json` - Tool definitions
 - `CLAUDE.md` - Claude Code rules
 - `AGENTS.md` - OpenCode rules
+- `hermes/SKILL.md` - Hermes Agent skill
+
+### Hermes Agent
+
+Install skill locally for use with Hermes:
+
+```bash
+# Copy skill to Hermes skills directory
+cp -r hermes/ ~/.hermes/skills/quality-tools
+```
+
+Or reference directly from project when loading:
+- Hermes will auto-discover quality-tools when in `~/.hermes/skills/`
+
+Skill features:
+- Automatic terminal tool passthrough
+- Code execution support via `execute_code`
+- Platform: macOS, Linux
