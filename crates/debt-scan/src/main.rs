@@ -166,12 +166,12 @@ fn scan_source(
             file: file_path.to_string(),
             line: line_num,
             marker_type: marker_type.to_string(),
-            text,
+            text: text.clone(),
             author,
             date,
             code_context: None,
-            suggested_fix: None,
-            auto_fix_available: None,
+            suggested_fix: get_suggested_fix(marker_type),
+            auto_fix_available: Some(false),
         });
     }
 }
@@ -189,6 +189,20 @@ fn is_filtered_out(marker_filter: &Option<Vec<String>>, marker_type: &str) -> bo
     match marker_filter {
         Some(filter) => !filter.contains(&marker_type.to_string()),
         None => false,
+    }
+}
+
+/// Returns a suggested fix for a given technical debt marker type
+fn get_suggested_fix(marker_type: &str) -> Option<String> {
+    match marker_type {
+        "todo" => Some("Create an issue in your issue tracker (e.g., GitHub Issues) and replace this TODO with a link to the issue. Example: 'TODO: See https://github.com/org/repo/issues/123'".to_string()),
+        "fixme" => Some("This indicates a known bug. Either fix it now or create an issue: 'FIXME: Bug with X, see https://github.com/org/repo/issues/456'".to_string()),
+        "hack" => Some("HACK indicates a temporary workaround. Plan to refactor: create a follow-up issue and add a deadline. Replace with: 'HACK: Temporary workaround until X is fixed (see issue #789)'".to_string()),
+        "xxx" => Some("XXX marks dangerous or questionable code. Review this code carefully and either fix it or document why it's needed. Consider adding a code comment explaining the rationale.".to_string()),
+        "warn" => Some("WARNING marker indicates potential issues. Review the code, address the warning if valid, and remove the marker. Document any trade-offs made.".to_string()),
+        "bug" => Some("BUG marker indicates a known defect. Prioritize fixing it or create a high-priority issue: 'BUG: Description of bug (fix in PR #123)'".to_string()),
+        "optimize" => Some("OPTIMIZE suggests a performance improvement opportunity. Profile first to confirm the bottleneck, then create a tracked issue or implement the optimization with benchmarks.".to_string()),
+        _ => Some("Review this marker and consider replacing it with a link to an issue tracker or inline documentation explaining the rationale.".to_string()),
     }
 }
 
@@ -254,10 +268,11 @@ fn output_table(items: &[DebtItem]) {
 
     let columns = [
         Column::left("TYPE", 8),
-        Column::left("FILE", 50),
+        Column::left("FILE", 40),
         Column::right("LINE", 4),
-        Column::left("AUTHOR", 15),
-        Column::left("TEXT", 30),
+        Column::left("AUTHOR", 12),
+        Column::left("TEXT", 25),
+        Column::left("HINT", 40),
     ];
     print_table_header(&columns);
 
@@ -293,9 +308,18 @@ fn output_table(items: &[DebtItem]) {
 
         let line_str = item.line.to_string();
         let type_str = format!("{} {}", icon, item.marker_type.to_uppercase());
+        let hint = item.suggested_fix.as_deref().unwrap_or("");
+        let hint_truncated = if hint.len() > 37 { &hint[0..37] } else { hint };
         print_table_row(
             &columns,
-            &[&type_str, &item.file, &line_str, author, &item.text],
+            &[
+                &type_str,
+                &item.file,
+                &line_str,
+                author,
+                &item.text,
+                hint_truncated,
+            ],
         );
     }
 
