@@ -1,6 +1,6 @@
 # Code Quality Tools
 
-This project uses **quality-tools** for automated code quality analysis. AI agents should use these tools to audit code quality.
+This project uses **CodeMetrics** for automated code quality analysis. AI agents should use these tools to audit code quality.
 
 ## Quality Tools Overview
 
@@ -17,11 +17,13 @@ This project uses **quality-tools** for automated code quality analysis. AI agen
 ## Usage Commands
 
 ### Full Audit (Recommended)
+
 ```
 quality run . --format sarif > results.sarif
 ```
 
 ### Individual Tools
+
 ```
 # CRAP scoring
 cargo run -p crap-metric -- ./src --recursive --format json

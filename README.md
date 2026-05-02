@@ -1,12 +1,10 @@
-# quality-tools
+# CodeMetrics
 
 ![Quality Audit](https://github.com/KidIkaros/quality-tools/actions/workflows/quality.yml/badge.svg)
 [![Docs](https://img.shields.io/badge/docs-available-brightgreen)](./docs/)
 [![ONBOARDING](https://img.shields.io/badge/onboarding-available-brightgreen)](./ONBOARDING.md)
 [![Rust](https://img.shields.io/badge/Rust-1.75%2B-orange)](https://rust-lang.org)
 [![License](https://img.shields.io/badge/License-Apache--2.0%20%7C%20OPL--1.1-blue)](LICENSE)
-
-## What is quality-tools?
 
 **AI-native code quality audit toolkit** — 10 tools for automated code analysis that actually work. Designed for CI/CD pipelines and AI agents.
 
@@ -15,7 +13,7 @@
 - **Production-proven** — Used on real Rust projects
 - **No dependencies** — tree-sitter based, no compilation needed
 
-### Quick Demo
+## Quick Demo
 
 ```bash
 # Full audit with SARIF output (GitHub Security tab compatible)
@@ -27,7 +25,7 @@ mutate . -p my-crate --max-mutants 5  # Mutation testing
 doccov ./src --recursive      # Doc coverage
 ```
 
-### Why quality-tools?
+### Why CodeMetrics?
 
 | Tool | What it catches |
 |------|---------------|
