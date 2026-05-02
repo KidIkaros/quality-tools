@@ -139,6 +139,8 @@ fn analyze_non_rust_file(path: &str, _cli: &Cli) -> Result<(), String> {
         "Java"
     } else if path.ends_with(".php") {
         "PHP"
+    } else if path.ends_with(".kt") || path.ends_with(".kts") {
+        "Kotlin"
     } else {
         "Unknown"
     };

@@ -21,14 +21,14 @@ Code quality metrics for 10+ languages via `tree-sitter`. All analysis is langua
 | `quality-common` | (lib) | Shared utilities -- coverage parsing, CRAP scoring, source file discovery, output formatting |
 | `quality-cli` | `quality` | Unified CLI -- runs all tools in one batch with CI-ready JSON/SARIF output |
 | `crap-metric` | `crap` | CRAP score calculator -- maintenance risk scoring (multi-language) |
-| `mutation-test` | `mutate` | Mutation testing -- evaluate test suite quality (Rust-only) |
+| `mutation-test` | `mutate` | Mutation testing -- evaluate test suite quality (12 languages) |
 | `debt-scan` | `debt` | Technical debt scanner -- TODO/FIXME/HACK tracking with git blame |
 | `doc-coverage` | `doccov` | Documentation coverage -- public API doc comment percentage |
 | `duplication` | `dupfind` | Code duplication -- AST-based structural similarity detection |
 | `coupling` | `coupling` | Coupling analysis -- module dependency graphs, fan-in/fan-out |
 | `risk-map` | `riskmap` | Risk map -- churn × complexity cross-reference (the killer feature) |
 | `taint-scan` | `taint` | Taint analysis -- detect sensitive data flow to sinks |
-| `fuzz-surface` | `fuzz` | Fuzz surface analysis -- identify fuzzable functions (Python, JS, Go, Rust) |
+| `fuzz-surface` | `fuzz` | Fuzz surface analysis -- identify fuzzable functions (12 languages) |
 | `prop-cov` | `propcov` | Property test coverage -- detect property-based and unit tests (multi-language) |
 
 ## Multi-Language Support
@@ -44,21 +44,21 @@ Designed for headless AI agent integration with:
 - **Streaming Support**: NDJSON format enables incremental processing for AI pipelines
 - **Standardized Output**: Consistent fields across all tools for reliable parsing
 
-| Tool | Rust | Python | JS/TS | Go | C/C++ | C# | Java | PHP | Ruby | Swift |
-|------|:----:|:------:|:-----:|:--:|:-----:|:--:|:----:|:---:|:----:|:-----:|
-| `debt-scan` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `taint-scan` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `complexity` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `doc-coverage` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `duplication` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `coupling` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `risk-map` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `crap-metric` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `mutation-test` | ✓ | — | — | — | — | — | — | — | — | — |
-| `fuzz-surface` | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — | — |
-| `prop-cov` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Tool | Rust | Python | JS/TS | Go | C/C++ | C# | Java | PHP | Ruby | Swift | Kotlin |
+|------|:----:|:------:|:-----:|:--:|:-----:|:--:|:----:|:---:|:----:|:-----:|:------:|
+| `debt-scan` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `taint-scan` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `complexity` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `doc-coverage` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `duplication` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `coupling` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `risk-map` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `crap-metric` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `mutation-test` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `fuzz-surface` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `prop-cov` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
-**Note:** `mutation-test` (`mutate`) requires `cargo` and is Rust-only. All other tools run directly on source code for all supported languages.
+**Note:** All tools now support 12 languages: Rust, Python, JavaScript, TypeScript, Go, C, C++, C#, Java, PHP, Ruby, Swift, and Kotlin. Tools run directly on source code via tree-sitter (no compilation needed).
 
 ## CRAP Metric
 

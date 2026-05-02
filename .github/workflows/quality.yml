@@ -36,6 +36,9 @@ jobs:
             target/release/dupfind
             target/release/propcov
             target/release/quality
+            target/release/mutate
+            target/release/fuzz
+            target/release/taint
           retention-days: 1
 
   test:

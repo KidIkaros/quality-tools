@@ -65,7 +65,7 @@ impl Language {
             Language::Php => Some(tree_sitter_php::LANGUAGE_PHP.into()),
             Language::Ruby => Some(tree_sitter_ruby::LANGUAGE.into()),
             Language::Swift => Some(tree_sitter_swift::LANGUAGE.into()),
-            Language::Kotlin => None, // Temporarily disabled - needs different tree-sitter-kotlin integration
+            Language::Kotlin => None, // Disabled: tree-sitter-kotlin version mismatch
             Language::Unknown => None,
         }
     }
