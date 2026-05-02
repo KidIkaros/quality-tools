@@ -1271,11 +1271,14 @@ fn run_batch(
         ),
         // mutation-test: run with capped mutants and enforced timeout.
         // Uses scratch workspace + watchdog kill — safe to include in batch.
+        // Note: requires -p flag for package selection
         (
             "mutation-test",
             "mutate",
             vec![
                 path,
+                "-p",
+                "ast-parse-ts",
                 "--max-mutants",
                 "5",
                 "--timeout",

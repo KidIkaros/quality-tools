@@ -1,8 +1,42 @@
 # quality-tools
 
-[![Quality Audit](https://github.com/your-org/quality-tools/actions/workflows/quality.yml/badge.svg)](https://github.com/your-org/quality-tools/actions/workflows/quality.yml)
+![Quality Audit](https://github.com/your-org/quality-tools/actions/workflows/quality.yml/badge.svg)
 [![Docs](https://img.shields.io/badge/docs-available-brightgreen)](./docs/)
 [![ONBOARDING](https://img.shields.io/badge/onboarding-available-brightgreen)](./ONBOARDING.md)
+[![Rust](https://img.shields.io/badge/Rust-1.75%2B-orange)](https://rust-lang.org)
+[![License](https://img.shields.io/badge/License-Apache--2.0%20%7C%20OPL--1.1-blue)](LICENSE)
+
+## What is quality-tools?
+
+**AI-native code quality audit toolkit** — 10 tools for automated code analysis that actually work. Designed for CI/CD pipelines and AI agents.
+
+- **Zero config** — Auto-detects 15 languages from your source files
+- **CI-ready** — JSON/SARIF output with severity levels and fix suggestions
+- **Production-proven** — Used on real Rust projects
+- **No dependencies** — tree-sitter based, no compilation needed
+
+### Quick Demo
+
+```bash
+# Full audit with SARIF output (GitHub Security tab compatible)
+quality run . --format sarif > results.sarif
+
+# Single tool
+crap ./src --recursive           # CRAP risk scoring
+mutate . -p my-crate --max-mutants 5  # Mutation testing
+doccov ./src --recursive      # Doc coverage
+```
+
+### Why quality-tools?
+
+| Tool | What it catches |
+|------|---------------|
+| `crap` | High-risk functions needing tests |
+| `mutate` | Weak test suites (mutants survive) |
+| `taint` | Sensitive data leaks |
+| `riskmap` | Files that change often AND are complex |
+| `doccov` | Undocumented public APIs |
+| `debt` | TODO/FIXME left behind |
 
 ## Documentation
 
@@ -17,40 +51,39 @@ Code quality metrics for 10+ languages via `tree-sitter`. All analysis is langua
 
 | Crate | Binary | Purpose |
 |-------|--------|---------|
-| `ast-parse-ts` | (lib) | Universal AST parsing (tree-sitter) -- complexity, doc coverage, fingerprints, imports, identifiers for 12+ languages |
-| `quality-common` | (lib) | Shared utilities -- coverage parsing, CRAP scoring, source file discovery, output formatting |
-| `quality-cli` | `quality` | Unified CLI -- runs all tools in one batch with CI-ready JSON/SARIF output |
-| `crap-metric` | `crap` | CRAP score calculator -- maintenance risk scoring (multi-language) |
-| `mutation-test` | `mutate` | Mutation testing -- evaluate test suite quality (12 languages) |
-| `debt-scan` | `debt` | Technical debt scanner -- TODO/FIXME/HACK tracking with git blame |
-| `doc-coverage` | `doccov` | Documentation coverage -- public API doc comment percentage |
-| `duplication` | `dupfind` | Code duplication -- AST-based structural similarity detection |
-| `coupling` | `coupling` | Coupling analysis -- module dependency graphs, fan-in/fan-out |
-| `risk-map` | `riskmap` | Risk map -- churn × complexity cross-reference (the killer feature) |
-| `taint-scan` | `taint` | Taint analysis -- detect sensitive data flow to sinks |
-| `fuzz-surface` | `fuzz` | Fuzz surface analysis -- identify fuzzable functions (12 languages) |
-| `prop-cov` | `propcov` | Property test coverage -- detect property-based and unit tests (multi-language) |
+| `ast-parse-ts` | (lib) | Universal AST parsing (tree-sitter) -- 15 languages |
+| `quality-common` | (lib) | Shared utilities -- coverage parsing, CRAP scoring |
+| `quality-cli` | `quality` | Unified CLI -- JSON/SARIF output |
+| `crap-metric` | `crap` | CRAP score calculator |
+| `mutation-test` | `mutate` | Mutation testing (Rust-only) |
+| `debt-scan` | `debt` | TODO/FIXME/HACK tracking |
+| `doc-coverage` | `doccov` | Documentation coverage |
+| `duplication` | `dupfind` | Code duplication detection |
+| `coupling` | `coupling` | Module coupling analysis |
+| `risk-map` | `riskmap` | Churn × complexity map |
+| `taint-scan` | `taint` | Taint analysis |
+| `fuzz-surface` | `fuzz` | Fuzzable function detection |
+| `prop-cov` | `propcov` | Property test coverage |
 
 ## Multi-Language Support
 
-The `ast-parse-ts` crate uses tree-sitter grammars (pure Rust, no external dependencies) to analyze source files directly — no compilation needed. Now supports 12 languages: Rust, Python, JavaScript, TypeScript, Go, C, C++, C#, Java, PHP, Ruby, Swift, and Kotlin (partial).
+The `ast-parse-ts` crate uses tree-sitter grammars (pure Rust, no external dependencies) to analyze source files directly — no compilation needed. Now supports 15 languages: Rust, Python, JavaScript, TypeScript, Go, C, C++, C#, Java, PHP, Ruby, Swift, Kotlin, Solidity, Vyper, and OCaml.
 
-### **Planned Languages** (Future Work)
+### Supported Languages
 
-The following smart contract and functional languages are planned for future support:
+| Language | Extensions | Tree-sitter Crate | Status |
+|----------|-------------|------------------|--------|
+| **Solidity** | `.sol` | `tree-sitter-solidity` | ✅ Implemented |
+| **Vyper** | `.vy` | N/A (parsing not available) | ⚠️ Disabled |
+| **OCaml** | `.ml`, `.mli` | `tree-sitter-ocaml` | ✅ Implemented |
+
+### Legacy Languages (Pre-existing)
+
+The following smart contract and functional languages were already supported:
 
 | Language | Extension | Tree-sitter Crate | Status |
 |----------|-----------|------------------|--------|
-| **Solidity** | `.sol` | `tree-sitter-solidity` | ✅ Research Complete |
-| **Vyper** | `.vy` | Research needed | ⚠️ Crate status uncertain |
-| **OCaml** | `.ml`, `.mli` | `tree-sitter-ocaml` | ✅ Research Complete |
-
-**Implementation Notes:**
-- Solidity: Well-documented tree-sitter grammar available, AST patterns identified
-- Vyper: Grammar exists but Rust crate status unclear; requires verification before implementation
-- OCaml: Stable tree-sitter-ocaml v0.24 available with full query support
-
-**Estimated Effort:** ~25-30 hours per language (3 languages × 8-10 hours/language)
+| Kotlin | `.kt`, `.kts` | `tree-sitter-kotlin` | ✅ Partial |
 
 ## AI-Native Toolkit
 

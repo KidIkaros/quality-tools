@@ -660,13 +660,17 @@ fn analyze_kotlin_file(source: &str, file: &str) -> Vec<FuzzableFunction> {
                     line: line_num,
                     params: vec![],
                     score: 10,
-                    is_public: trimmed.starts_with("public ") || !trimmed.starts_with("private ") || trimmed.starts_with("internal "),
+                    is_public: trimmed.starts_with("public ")
+                        || !trimmed.starts_with("private ")
+                        || trimmed.starts_with("internal "),
                     complexity: 1,
                     has_harness: false,
                 });
             }
         }
     }
+
+    functions
 }
 
 // Solidity function analysis (simplified)
@@ -696,15 +700,13 @@ fn analyze_solidity_file(source: &str, file: &str) -> Vec<FuzzableFunction> {
                     line: line_num,
                     params: vec![],
                     score: 10,
-                    is_public: trimmed.starts_with("public ") || !trimmed.starts_with("private ") || trimmed.starts_with("internal "),
+                    is_public: trimmed.starts_with("public ")
+                        || !trimmed.starts_with("private ")
+                        || trimmed.starts_with("internal "),
                     complexity: 1,
                     has_harness: false,
                 });
             }
-        }
-    }
-
-    functions
         }
     }
 

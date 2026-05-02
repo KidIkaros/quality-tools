@@ -27,6 +27,10 @@ struct Cli {
     #[arg(long)]
     files: Option<String>,
 
+    /// Package name to test (required for workspace crates; auto-detected for single crates)
+    #[arg(short = 'p', long)]
+    package: Option<String>,
+
     /// Maximum mutants to test (default: 5, ceiling: 50)
     #[arg(short = 'n', long, default_value = "5")]
     max_mutants: usize,
@@ -499,6 +503,18 @@ fn run(cli: Cli) -> Result<(), String> {
         }
     }
 
+    // Determine package name: use CLI flag, or auto-detect from Cargo.toml
+    let package_name = if let Some(ref pkg) = cli.package {
+        pkg.clone()
+    } else {
+        // Try to find package from [package] section, or first member from [workspace]
+        find_package_name(crate_root)
+            .or_else(|_| find_first_workspace_member(crate_root))
+            .map_err(|e| {
+                format!("Could not auto-detect package name. Use -p/--package flag or pass a crate with [package] name. Error: {}", e)
+            })?
+    };
+
     // Hard ceiling to prevent runaway test sessions
     let max_mutants = cli.max_mutants.min(50);
     if cli.max_mutants > 50 {
@@ -506,13 +522,13 @@ fn run(cli: Cli) -> Result<(), String> {
     }
 
     // Verify tests pass in the ORIGINAL crate first (uses existing build cache)
-    verify_tests_pass(crate_root, cli.timeout)?;
+    verify_tests_pass(crate_root, &package_name, cli.timeout)?;
 
     // Build the scratch directory once; all mutations run there
     let scratch = ScratchCrate::new(crate_root)?;
     eprintln!("Scratch dir: {}", scratch.root.display());
 
-    let source_files = find_source_files(crate_root, &cli.files);
+    let source_files = find_source_files(crate_root, &package_name, &cli.files);
     if source_files.is_empty() {
         return Err("No source files found to mutate.".to_string());
     }
@@ -626,6 +642,7 @@ fn run(cli: Cli) -> Result<(), String> {
                 crate_root,
                 &workspace_root,
                 &scratch,
+                &package_name,
                 cli.timeout,
                 cli.nextest,
             );
@@ -776,6 +793,67 @@ fn find_workspace_root(crate_root: &Path) -> PathBuf {
     }
 }
 
+/// Extract package name from Cargo.toml [package] section.
+/// Returns error if no [package] section found.
+fn find_package_name(crate_root: &Path) -> Result<String, String> {
+    let cargo_toml = crate_root.join("Cargo.toml");
+    let content = std::fs::read_to_string(&cargo_toml)
+        .map_err(|e| format!("Failed to read Cargo.toml: {}", e))?;
+
+    // Look for name = "..." in [package] section
+    let mut in_package = false;
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed == "[package]" {
+            in_package = true;
+            continue;
+        }
+        if trimmed.starts_with('[') {
+            in_package = false;
+        }
+        if in_package && trimmed.starts_with("name") {
+            if let Some(name) = trimmed.split('=').nth(1) {
+                let name = name.trim().trim_matches('"').trim_matches('\'');
+                return Ok(name.to_string());
+            }
+        }
+    }
+    Err("No [package] section with name found in Cargo.toml".to_string())
+}
+
+/// Find first member package in a workspace [workspace.members].
+/// Useful when running mutate on a workspace root.
+fn find_first_workspace_member(workspace_root: &Path) -> Result<String, String> {
+    // Simple approach: scan crates/ directories for Cargo.toml with [package]
+    let crates_dir = workspace_root.join("crates");
+    if crates_dir.exists() {
+        if let Ok(entries) = std::fs::read_dir(&crates_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    let toml = path.join("Cargo.toml");
+                    if toml.exists() {
+                        // Found a crate! Get its name from [package]
+                        if let Ok(crate_content) = std::fs::read_to_string(&toml) {
+                            for line in crate_content.lines() {
+                                let trimmed = line.trim();
+                                if trimmed.starts_with("name") {
+                                    if let Some(name) = trimmed.split('=').nth(1) {
+                                        let name = name.trim().trim_matches('"').trim_matches('\'');
+                                        return Ok(name.to_string());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Err("No workspace members found".to_string())
+}
+
 fn copy_dir_recursive_filtered(src: &Path, dst: &Path) -> std::io::Result<()> {
     std::fs::create_dir_all(dst)?;
     for entry in std::fs::read_dir(src)? {
@@ -807,6 +885,7 @@ fn test_mutant_isolated(
     crate_root: &Path,
     workspace_root: &Path,
     scratch: &ScratchCrate,
+    package_name: &str,
     timeout_secs: u64,
     use_nextest: bool,
 ) -> MutantResult {
@@ -856,9 +935,10 @@ fn test_mutant_isolated(
 
     // Run tests with cargo-nextest or cargo test
     let test_result = if use_nextest {
+        // nextest doesn't need package flag when running in the package directory
         run_nextest_with_timeout(&scratch.scratch_crate_root(), timeout_secs)
     } else {
-        run_cargo_test_with_timeout(&scratch.scratch_crate_root(), timeout_secs)
+        run_cargo_test_with_timeout(&scratch.scratch_crate_root(), package_name, timeout_secs)
     };
 
     // Always restore the scratch file to clean state
@@ -970,8 +1050,12 @@ fn run_nextest_with_timeout(crate_root: &Path, timeout_secs: u64) -> TestOutcome
 }
 
 /// Sets CARGO_TARGET_DIR to the shared host target dir to reuse build artifacts and avoid
-/// recompiling everything from scratch on each mutation.
-fn run_cargo_test_with_timeout(crate_root: &Path, timeout_secs: u64) -> TestOutcome {
+/// recompiling everything from scratch for each mutation.
+fn run_cargo_test_with_timeout(
+    crate_root: &Path,
+    package_name: &str,
+    timeout_secs: u64,
+) -> TestOutcome {
     // Pass --target-dir explicitly so the scratch crate reuses the host build cache.
     // This avoids recompiling everything from scratch for each mutant.
     let target_dir = home_target_dir();
@@ -983,6 +1067,8 @@ fn run_cargo_test_with_timeout(crate_root: &Path, timeout_secs: u64) -> TestOutc
     cmd.args([
         "test",
         "--quiet",
+        "-p",
+        package_name,
         "--target-dir",
         target_dir.to_str().unwrap_or("target"),
     ]);
@@ -1061,9 +1147,9 @@ fn home_target_dir() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from("target"))
 }
 
-fn verify_tests_pass(crate_root: &Path, timeout: u64) -> Result<(), String> {
+fn verify_tests_pass(crate_root: &Path, package_name: &str, timeout: u64) -> Result<(), String> {
     println!("Verifying tests pass in scratch copy...");
-    match run_cargo_test_with_timeout(crate_root, timeout) {
+    match run_cargo_test_with_timeout(crate_root, package_name, timeout) {
         TestOutcome::Survived(_) => {
             println!("✓ Tests pass.\n");
             Ok(())
@@ -1361,7 +1447,12 @@ fn replace_line(source: &str, line_num: usize, new_content: &str) -> String {
 }
 
 /// Find source files to mutate
-fn find_source_files(crate_root: &Path, filter: &Option<String>) -> Vec<PathBuf> {
+/// If path is a workspace root, looks in crates/<package_name>/src/
+fn find_source_files(
+    crate_root: &Path,
+    package_name: &str,
+    filter: &Option<String>,
+) -> Vec<PathBuf> {
     if let Some(files) = filter {
         return files
             .split(',')
@@ -1370,9 +1461,30 @@ fn find_source_files(crate_root: &Path, filter: &Option<String>) -> Vec<PathBuf>
             .collect();
     }
 
+    // Determine the source directory
+    // Try src/ first (standard crate layout)
     let src_dir = crate_root.join("src");
     let mut files = Vec::new();
-    find_rs_files(&src_dir, &mut files);
+
+    if src_dir.exists() && src_dir.is_dir() {
+        find_rs_files(&src_dir, &mut files);
+    } else {
+        // Try crates/<package>/src (workspace layout)
+        let crate_src_dir = crate_root
+            .join("crates")
+            .join(package_name.replace('_', "-"))
+            .join("src");
+        if crate_src_dir.exists() && crate_src_dir.is_dir() {
+            find_rs_files(&crate_src_dir, &mut files);
+        } else {
+            // Try lib/ as fallback
+            let lib_dir = crate_root.join("lib");
+            if lib_dir.exists() && lib_dir.is_dir() {
+                find_rs_files(&lib_dir, &mut files);
+            }
+        }
+    }
+
     files.sort();
     files
 }

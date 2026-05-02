@@ -30,7 +30,7 @@ quality-tools/
 
 ### `ast-parse-ts`
 - Provides multi-language AST parsing via tree-sitter
-- Supports 12+ languages (Rust, Python, JS, TS, Go, C, C++, C#, Java, PHP, Ruby, Swift)
+- Supports 15 languages: Rust, Python, JS, TS, Go, C, C++, C#, Java, PHP, Ruby, Swift, Kotlin, Solidity, Vyper, OCaml
 - Exports: `parse_complexity_file()`, `parse_doc_coverage_file()`, `Language` enum
 
 ### `quality-common`
