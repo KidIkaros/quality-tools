@@ -1,32 +1,17 @@
 [workspace]
-members = [
-    "crates/codemetrics-common",
-    "crates/ast-parse-ts",
-    "crates/crap-metric",
-    "crates/mutation-test",
-    "crates/debt-scan",
-    "crates/doc-coverage",
-    "crates/duplication",
-    "crates/coupling",
-    "crates/risk-map",
-    "crates/codemetrics-cli",
-    "crates/codemetrics-server",
-    "crates/fuzz-surface",
-    "crates/prop-cov",
-    "crates/taint-scan",
-]
+members = [ "crates/codemetrics-common", "crates/ast-parse-ts", "crates/crap-metric", "crates/mutation-test", "crates/debt-scan", "crates/doc-coverage", "crates/duplication", "crates/coupling", "crates/risk-map", "crates/codemetrics-cli", "crates/codemetrics-server", "crates/fuzz-surface", "crates/prop-cov", "crates/taint-scan",]
 resolver = "2"
 
 [workspace.package]
 version = "1.0.0"
 edition = "2021"
-license = "Apache-2.0 OR OPL-1.1"
+license = "Apache-2.0"
 repository = "https://github.com/KidIkaros/codemetrics"
 description = "CodeMetrics — production-grade code quality auditing toolkit (10 engines, unified CLI)"
-keywords = ["quality", "metrics", "security", "audit", "cli"]
-categories = ["development-tools", "command-line-utilities", "development-tools::testing"]
+keywords = [ "quality", "metrics", "security", "audit", "cli",]
+categories = [ "development-tools", "command-line-utilities", "development-tools::testing",]
 
 [profile.release]
 lto = true
-codegen-units = 1  # Reduce parallel codegen memory usage
-strip = "debuginfo"  # Remove debug info from release binaries
+codegen-units = 1
+strip = "debuginfo"

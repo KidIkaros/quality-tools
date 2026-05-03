@@ -20,10 +20,10 @@ workspace = true
 [package.edition]
 workspace = true
 
-[package.license]
+[package.repository]
 workspace = true
 
-[package.repository]
+[package.license]
 workspace = true
 
 [dependencies.ast-parse-ts]

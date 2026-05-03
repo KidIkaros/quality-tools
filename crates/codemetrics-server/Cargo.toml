@@ -1,22 +1,46 @@
 [package]
 name = "codemetrics-server"
-version = { workspace = true }
 edition = "2021"
 description = "UTCP/MCP server bridge for CodeMetrics — exposes tools as model-context-protocol resources"
-license = { workspace = true }
-repository = { workspace = true }
-keywords = { workspace = true }
-categories = { workspace = true }
 
 [dependencies]
-codemetrics-common = { path = "../codemetrics-common" }
-serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "macros", "process", "time", "io-std"] }
-clap = { version = "4", features = ["derive"] }
-uuid = { version = "1", features = ["v4"] }
 
 [features]
-default = ["tcp"]
+default = [ "tcp",]
 tcp = []
 stdio = []
+
+[package.version]
+workspace = true
+
+[package.repository]
+workspace = true
+
+[package.keywords]
+workspace = true
+
+[package.categories]
+workspace = true
+
+[package.license]
+workspace = true
+
+[dependencies.codemetrics-common]
+path = "../codemetrics-common"
+
+[dependencies.serde]
+version = "1"
+features = [ "derive",]
+
+[dependencies.tokio]
+version = "1"
+features = [ "rt-multi-thread", "net", "io-util", "macros", "process", "time", "io-std",]
+
+[dependencies.clap]
+version = "4"
+features = [ "derive",]
+
+[dependencies.uuid]
+version = "1"
+features = [ "v4",]
