@@ -15,7 +15,7 @@ categories = [ "development-tools", "command-line-utilities", "development-tools
 thiserror = "1.0"
 anyhow = "1.0"
 tracing = "0.1"
-tracing-subscriber = { version = "0.1", features = ["fmt"] }
+tracing-subscriber = { version = "0.3", features = ["fmt"] }
 toml = "0.8"
 
 [profile.release]

@@ -1,5 +1,10 @@
 #![deny(clippy::all)]
 
+//! Common types and utilities for CodeMetrics tools.
+//!
+//! This crate provides shared data structures (ToolRequest, ToolResponse, etc.),
+//! formatting helpers (tables, summaries), git integration, and SARIF output support.
+
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use unicode_width::UnicodeWidthChar;
@@ -203,7 +208,10 @@ pub fn scan_dir(dir: &Path, recursive: bool, extensions: &[&str], files: &mut Ve
 /// Uses unicode visual width so multi-byte icons (✓ △ ✗ …) count correctly.
 pub fn truncate(s: &str, max: usize) -> String {
     // Fast path: the string already fits
-    let visual_len: usize = s.chars().map(|c| UnicodeWidthChar::width(c).unwrap_or(0)).sum();
+    let visual_len: usize = s
+        .chars()
+        .map(|c| UnicodeWidthChar::width(c).unwrap_or(0))
+        .sum();
     if visual_len <= max {
         return s.to_string();
     }
@@ -230,7 +238,10 @@ pub fn truncate(s: &str, max: usize) -> String {
 /// Keeps the LEFT side (start) of the string.
 /// Uses unicode visual width so multi-byte icons (✓ △ ✗ …) count correctly.
 pub fn truncate_left(s: &str, max: usize) -> String {
-    let visual_len: usize = s.chars().map(|c| UnicodeWidthChar::width(c).unwrap_or(0)).sum();
+    let visual_len: usize = s
+        .chars()
+        .map(|c| UnicodeWidthChar::width(c).unwrap_or(0))
+        .sum();
     if visual_len <= max {
         return s.to_string();
     }
@@ -368,10 +379,14 @@ pub fn print_verdict(score: f64, good_threshold: f64, label_good: &str, label_ba
 // ═══════════════════════════════════════════
 
 /// Get git churn data: file -> number of commits since a date.
+///
+/// Uses `git log --since <date> --name-only` to count commits per file.
+/// Returns a HashMap where keys are file paths and values are commit counts.
 pub fn get_git_churn(repo_root: &Path, since: &str) -> std::collections::HashMap<String, u32> {
     use std::collections::HashMap;
     use std::process::Command;
 
+    // Execute git log to get all files changed since the given date
     let output = Command::new("git")
         .args(["log", "--since", since, "--name-only", "--pretty=format:"])
         .current_dir(repo_root)
@@ -432,7 +447,9 @@ pub fn get_git_blame(file_path: &str, line: usize) -> (Option<String>, Option<St
 }
 
 /// Get git blame info for multiple lines in a file efficiently.
-/// Returns a HashMap mapping line number to (author, date).
+///
+/// Returns a HashMap mapping line number to (author, date) tuples.
+/// Uses line ranges to minimize git blame calls for better performance.
 pub fn get_git_blame_batch(
     file_path: &str,
     lines: &[usize],
@@ -444,13 +461,13 @@ pub fn get_git_blame_batch(
         return HashMap::new();
     }
 
-    // Sort and deduplicate lines
+    // Sort and deduplicate lines to optimize git blame calls
     let mut sorted_lines = lines.to_vec();
     sorted_lines.sort_unstable();
     sorted_lines.dedup();
 
     // Build line ranges to minimize git blame calls
-    // Group consecutive lines into ranges
+    // Group consecutive lines into ranges to reduce subprocess spawns
     let mut ranges: Vec<(usize, usize)> = Vec::new();
     let mut range_start = sorted_lines[0];
     let mut prev_line = sorted_lines[0];
@@ -556,7 +573,11 @@ mod tests {
         assert_eq!(truncate("✓ ok", 10), "✓ ok");
         // Multi-char: truncate to 3 cols → "…ok" (3 cols)
         let r = truncate("✓ hello", 3);
-        assert_eq!(r.len(), "…ok".len(), "truncated string byte length unexpected");
+        assert_eq!(
+            r.len(),
+            "…ok".len(),
+            "truncated string byte length unexpected"
+        );
         assert!(r.starts_with('…'));
     }
 
@@ -961,7 +982,9 @@ fn demangle_rust_v0(sym: &str) -> String {
         }
         i += 1;
     }
-    last_ident.map(|s| s.to_string()).unwrap_or_else(|| sym.to_string())
+    last_ident
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| sym.to_string())
 }
 
 pub fn parse_lcov(content: &str) -> Vec<CoverageRecord> {

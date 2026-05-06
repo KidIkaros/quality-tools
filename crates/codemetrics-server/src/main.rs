@@ -80,6 +80,10 @@ struct McpTool {
     input_schema: Value,
 }
 
+/// Returns the catalog of available tools for tool discovery.
+///
+/// This is used by MCP clients to discover what tools are available.
+/// Returns a list of ToolCatalogEntry structs with name, description, binary, and args schema.
 fn tool_catalog() -> Vec<ToolCatalogEntry> {
     vec![
         ToolCatalogEntry {
@@ -207,6 +211,10 @@ fn tool_catalog() -> Vec<ToolCatalogEntry> {
     ]
 }
 
+/// Convert tool catalog to MCP tools/list format.
+///
+/// Takes the internal ToolCatalogEntry format and converts it to MCP protocol format.
+/// This is called when clients request the list of available tools.
 fn mcp_tools_list() -> Value {
     let mcp_tools: Vec<McpTool> = tool_catalog()
         .into_iter()
@@ -219,6 +227,11 @@ fn mcp_tools_list() -> Value {
     serde_json::json!({ "tools": mcp_tools })
 }
 
+/// Handle a single JSON-RPC request and return a response.
+///
+/// This is the main request dispatcher that routes to appropriate handlers
+/// based on the method name (initialize, tools/list, tools/call, etc.).
+/// Returns None for notifications that don't require a response.
 async fn handle_request(req: JsonRpcRequest) -> Option<JsonRpcResponse> {
     match req.method.as_str() {
         // ── MCP lifecycle ──────────────────────────────────────────────────
@@ -326,6 +339,10 @@ async fn handle_request(req: JsonRpcRequest) -> Option<JsonRpcResponse> {
     }
 }
 
+/// Run a tool via MCP protocol shape (tools/call).
+///
+/// Parses the MCP-style params (name, arguments), wraps them in a ToolRequest,
+/// executes the tool, and returns the result in MCP content format.
 async fn run_tool_mcp(params: Option<Value>) -> std::result::Result<Value, ServerError> {
     let params = params.ok_or_else(|| {
         ServerError::IoError(std::io::Error::new(
@@ -353,6 +370,10 @@ async fn run_tool_mcp(params: Option<Value>) -> std::result::Result<Value, Serve
     }))
 }
 
+/// Run a tool using legacy request shape (tools/run).
+///
+/// Parses the ToolRequest from params, finds the matching tool in the catalog,
+/// executes it as a subprocess, and wraps the result in a ToolResponse.
 async fn run_tool(params: Option<Value>) -> std::result::Result<Value, ServerError> {
     let params = params.ok_or_else(|| {
         ServerError::IoError(std::io::Error::new(
@@ -436,6 +457,10 @@ async fn run_tool(params: Option<Value>) -> std::result::Result<Value, ServerErr
 }
 
 #[tokio::main]
+/// Main entry point for the codemetrics-server.
+///
+/// Initializes tracing for structured logging (uses RUST_LOG env var).
+/// Parses CLI arguments and dispatches to the appropriate transport mode.
 async fn main() {
     // Initialize tracing (set RUST_LOG=debug to see debug logs)
     tracing_subscriber::fmt::init();
@@ -454,6 +479,10 @@ async fn main() {
     }
 }
 
+/// Run the server in stdio mode (JSON-RPC over stdin/stdout).
+///
+/// Reads JSON-RPC requests from stdin line by line, processes them,
+/// and writes responses to stdout. This is the default mode for MCP integration.
 async fn run_stdio() -> Result<()> {
     let stdin: tokio::io::Stdin = tokio::io::stdin();
     let stdout: tokio::io::Stdout = tokio::io::stdout();
@@ -513,6 +542,11 @@ async fn run_stdio() -> Result<()> {
     Ok(())
 }
 
+/// Run the server in TCP mode (JSON-RPC over TCP sockets).
+///
+/// Binds to 127.0.0.1:{port} and accepts incoming connections.
+/// Each connection is handled in a separate tokio task.
+/// Uses structured logging via tracing crate.
 async fn run_tcp(port: u16) -> Result<()> {
     let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port))
         .await
@@ -536,6 +570,11 @@ async fn run_tcp(port: u16) -> Result<()> {
     }
 }
 
+/// Handle a single TCP connection from a client.
+///
+/// Reads JSON-RPC requests line by line from the socket,
+/// processes them via `handle_request()`, and writes responses back.
+/// Each connection is handled independently in its own tokio task.
 async fn handle_tcp_connection(socket: tokio::net::TcpStream) -> Result<()> {
     let (reader, mut writer) = socket.into_split();
     let reader = BufReader::new(reader);
