@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════
 
 use serde::Deserialize;
+use colored::Colorize;
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
@@ -114,4 +115,117 @@ pub struct TypeCoverageConfig {
 #[derive(Debug, Deserialize)]
 pub struct HalsteadConfig {
     pub max_bug_estimate: Option<f64>,
+}
+
+/// Validate a loaded config and print warnings for common issues.
+/// Returns true if the config is valid, false if there are critical errors.
+pub fn validate_config(config: &Config) -> bool {
+    let mut valid = true;
+    let mut warnings = Vec::new();
+
+    // Check for conflicting thresholds
+    if let Some(ref crap) = config.crap {
+        if let Some(threshold) = crap.threshold {
+            if threshold <= 0.0 {
+                warnings.push("crap.threshold should be positive".to_string());
+            }
+            if threshold > 100.0 {
+                warnings.push("crap.threshold > 100 is very permissive".to_string());
+            }
+        }
+        if let Some(max_avg) = crap.max_avg {
+            if max_avg <= 0.0 {
+                warnings.push("crap.max_avg should be positive".to_string());
+                valid = false;
+            }
+        }
+    }
+
+    if let Some(ref doc) = config.doc {
+        if let Some(min_pct) = doc.min_pct.or(doc.min_coverage) {
+            if !(0.0..=100.0).contains(&min_pct) {
+                warnings.push(format!("doc.min_pct should be 0-100, got {}", min_pct));
+                valid = false;
+            }
+        }
+    }
+
+    if let Some(ref debt) = config.debt {
+        if let Some(max_items) = debt.max_items.or(debt.max_markers) {
+            if max_items > 10000 {
+                warnings.push(format!("debt.max_items={} is very high, analysis may be slow", max_items));
+            }
+        }
+    }
+
+    if let Some(ref complexity) = config.complexity {
+        if let Some(max_violations) = complexity.max_violations {
+            if max_violations > 1000 {
+                warnings.push(format!("complexity.max_violations={} is very high", max_violations));
+            }
+        }
+    }
+
+    // Check for unknown/unused project settings
+    if let Some(ref project) = config.project {
+        if let Some(ref eco) = project.ecosystem {
+            let known = ["rust", "python", "javascript", "typescript", "go"];
+            if !known.contains(&eco.to_lowercase().as_str()) {
+                warnings.push(format!("unknown ecosystem '{}', expected one of: {:?}", eco, known));
+            }
+        }
+    }
+
+    // Print warnings
+    for warning in &warnings {
+        eprintln!("  {} config: {}", "⚠".yellow(), warning);
+    }
+
+    valid
+}
+
+/// Load and validate config from a file path.
+/// Returns the config and whether it's valid.
+pub fn load_and_validate(config_path: &str) -> (Config, bool) {
+    let content = match std::fs::read_to_string(config_path) {
+        Ok(c) => c,
+        Err(_) => {
+            eprintln!("  {} could not read {}", "✗".red().bold(), config_path);
+            return (Config::default(), false);
+        }
+    };
+
+    let config: Config = match toml::from_str(&content) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("  {} invalid TOML in {}: {}", "✗".red().bold(), config_path, e);
+            return (Config::default(), false);
+        }
+    };
+
+    let valid = validate_config(&config);
+    (config, valid)
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            project: None,
+            crap: None,
+            debt: None,
+            doc: None,
+            complexity: None,
+            taint: None,
+            duplication: None,
+            risk: None,
+            coupling: None,
+            mutation: None,
+            security: None,
+            secrets: None,
+            licenses: None,
+            dead_code: None,
+            type_coverage: None,
+            halstead: None,
+        }
+    }
 }
