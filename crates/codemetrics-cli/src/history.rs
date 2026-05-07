@@ -2,8 +2,6 @@
 // HISTORY — trend tracking
 // ═══════════════════════════════════════════
 
-use serde_json;
-
 pub fn history_command(action: &str, dir: &str, last: usize, report_path: Option<&str>) -> i32 {
     match action {
         "record" => history_record(dir, report_path),

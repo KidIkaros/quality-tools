@@ -12,11 +12,11 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 #[derive(Debug, Error)]
 enum ServerError {
     #[error("Failed to bind TCP listener on port {0}: {1}")]
-    BindError(u16, #[source] std::io::Error),
+    Bind(u16, #[source] std::io::Error),
     #[error("JSON serialization error: {0}")]
-    JsonError(#[source] serde_json::Error),
+    Json(#[source] serde_json::Error),
     #[error("IO error: {0}")]
-    IoError(#[source] std::io::Error),
+    Io(#[source] std::io::Error),
 }
 
 type Result<T> = std::result::Result<T, ServerError>;
@@ -345,13 +345,13 @@ async fn handle_request(req: JsonRpcRequest) -> Option<JsonRpcResponse> {
 /// executes the tool, and returns the result in MCP content format.
 async fn run_tool_mcp(params: Option<Value>) -> std::result::Result<Value, ServerError> {
     let params = params.ok_or_else(|| {
-        ServerError::IoError(std::io::Error::new(
+        ServerError::Io(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
             "Missing params",
         ))
     })?;
     let name = params.get("name").and_then(|v| v.as_str()).ok_or_else(|| {
-        ServerError::IoError(std::io::Error::new(
+        ServerError::Io(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
             "Missing 'name' field in tools/call params",
         ))
@@ -364,7 +364,7 @@ async fn run_tool_mcp(params: Option<Value>) -> std::result::Result<Value, Serve
     let wrapped_params = serde_json::json!({ "tool": name, "args": arguments });
     let inner = run_tool(Some(wrapped_params)).await?;
 
-    let text = serde_json::to_string_pretty(&inner).map_err(ServerError::JsonError)?;
+    let text = serde_json::to_string_pretty(&inner).map_err(ServerError::Json)?;
     Ok(serde_json::json!({
         "content": [{ "type": "text", "text": text }]
     }))
@@ -376,19 +376,19 @@ async fn run_tool_mcp(params: Option<Value>) -> std::result::Result<Value, Serve
 /// executes it as a subprocess, and wraps the result in a ToolResponse.
 async fn run_tool(params: Option<Value>) -> std::result::Result<Value, ServerError> {
     let params = params.ok_or_else(|| {
-        ServerError::IoError(std::io::Error::new(
+        ServerError::Io(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
             "Missing params",
         ))
     })?;
-    let tool_req: ToolRequest = serde_json::from_value(params).map_err(ServerError::JsonError)?;
+    let tool_req: ToolRequest = serde_json::from_value(params).map_err(ServerError::Json)?;
 
     let catalog = tool_catalog();
     let entry = catalog
         .iter()
         .find(|e| e.name == tool_req.tool || e.binary == tool_req.tool)
         .ok_or_else(|| {
-            ServerError::IoError(std::io::Error::new(
+            ServerError::Io(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
                 format!("Unknown tool: {}", tool_req.tool),
             ))
@@ -421,7 +421,7 @@ async fn run_tool(params: Option<Value>) -> std::result::Result<Value, ServerErr
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .output()
-        .map_err(ServerError::IoError)?;
+        .map_err(ServerError::Io)?;
 
     let duration_ms = start.elapsed().as_millis() as u64;
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -453,7 +453,7 @@ async fn run_tool(params: Option<Value>) -> std::result::Result<Value, ServerErr
         error,
     );
 
-    serde_json::to_value(response).map_err(ServerError::JsonError)
+    serde_json::to_value(response).map_err(ServerError::Json)
 }
 
 #[tokio::main]
@@ -490,7 +490,7 @@ async fn run_stdio() -> Result<()> {
     let mut lines = reader.lines();
     let mut stdout = stdout;
 
-    while let Some(line) = lines.next_line().await.map_err(ServerError::IoError)? {
+    while let Some(line) = lines.next_line().await.map_err(ServerError::Io)? {
         if line.trim().is_empty() {
             continue;
         }
@@ -508,32 +508,26 @@ async fn run_stdio() -> Result<()> {
                         data: None,
                     }),
                 };
-                let msg = serde_json::to_string(&resp).map_err(ServerError::JsonError)?;
+                let msg = serde_json::to_string(&resp).map_err(ServerError::Json)?;
                 stdout
                     .write_all(msg.as_bytes())
                     .await
-                    .map_err(ServerError::IoError)?;
-                stdout
-                    .write_all(b"\n")
-                    .await
-                    .map_err(ServerError::IoError)?;
-                stdout.flush().await.map_err(ServerError::IoError)?;
+                    .map_err(ServerError::Io)?;
+                stdout.write_all(b"\n").await.map_err(ServerError::Io)?;
+                stdout.flush().await.map_err(ServerError::Io)?;
                 continue;
             }
         };
 
         let is_shutdown = req.method == "shutdown";
         if let Some(resp) = handle_request(req).await {
-            let msg = serde_json::to_string(&resp).map_err(ServerError::JsonError)?;
+            let msg = serde_json::to_string(&resp).map_err(ServerError::Json)?;
             stdout
                 .write_all(msg.as_bytes())
                 .await
-                .map_err(ServerError::IoError)?;
-            stdout
-                .write_all(b"\n")
-                .await
-                .map_err(ServerError::IoError)?;
-            stdout.flush().await.map_err(ServerError::IoError)?;
+                .map_err(ServerError::Io)?;
+            stdout.write_all(b"\n").await.map_err(ServerError::Io)?;
+            stdout.flush().await.map_err(ServerError::Io)?;
         }
         if is_shutdown {
             break;
@@ -550,7 +544,7 @@ async fn run_stdio() -> Result<()> {
 async fn run_tcp(port: u16) -> Result<()> {
     let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port))
         .await
-        .map_err(|e| ServerError::BindError(port, e))?;
+        .map_err(|e| ServerError::Bind(port, e))?;
     println!("codemetrics-server listening on 127.0.0.1:{}", port);
 
     loop {
@@ -580,7 +574,7 @@ async fn handle_tcp_connection(socket: tokio::net::TcpStream) -> Result<()> {
     let reader = BufReader::new(reader);
     let mut lines = reader.lines();
 
-    while let Some(line) = lines.next_line().await.map_err(ServerError::IoError)? {
+    while let Some(line) = lines.next_line().await.map_err(ServerError::Io)? {
         if line.trim().is_empty() {
             continue;
         }
@@ -598,30 +592,24 @@ async fn handle_tcp_connection(socket: tokio::net::TcpStream) -> Result<()> {
                         data: None,
                     }),
                 };
-                let msg = serde_json::to_string(&resp).map_err(ServerError::JsonError)?;
+                let msg = serde_json::to_string(&resp).map_err(ServerError::Json)?;
                 writer
                     .write_all(msg.as_bytes())
                     .await
-                    .map_err(ServerError::IoError)?;
-                writer
-                    .write_all(b"\n")
-                    .await
-                    .map_err(ServerError::IoError)?;
+                    .map_err(ServerError::Io)?;
+                writer.write_all(b"\n").await.map_err(ServerError::Io)?;
                 continue;
             }
         };
 
         let is_shutdown = req.method == "shutdown";
         if let Some(resp) = handle_request(req).await {
-            let msg = serde_json::to_string(&resp).map_err(ServerError::JsonError)?;
+            let msg = serde_json::to_string(&resp).map_err(ServerError::Json)?;
             writer
                 .write_all(msg.as_bytes())
                 .await
-                .map_err(ServerError::IoError)?;
-            writer
-                .write_all(b"\n")
-                .await
-                .map_err(ServerError::IoError)?;
+                .map_err(ServerError::Io)?;
+            writer.write_all(b"\n").await.map_err(ServerError::Io)?;
         }
         if is_shutdown {
             break;

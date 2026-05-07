@@ -2,8 +2,6 @@
 // OUTPUT FORMATTERS
 // ═══════════════════════════════════════════
 
-use serde_json;
-
 use crate::types::{CheckReport, ToolInfo};
 
 pub fn output_json(report: &CheckReport) {

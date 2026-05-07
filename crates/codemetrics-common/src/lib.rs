@@ -11,6 +11,32 @@ use unicode_width::UnicodeWidthChar;
 
 pub mod memory;
 
+// Incremental filter: when set, only files in this list are returned by find_source_files
+std::thread_local! {
+    static INCREMENTAL_FILTER: std::cell::RefCell<Option<Vec<String>>> = const { std::cell::RefCell::new(None) };
+}
+
+/// Set the incremental filter (list of files that have changed)
+pub fn set_incremental_filter(files: Vec<String>) {
+    INCREMENTAL_FILTER.with(|f| f.replace(Some(files)));
+}
+
+/// Clear the incremental filter
+pub fn clear_incremental_filter() {
+    INCREMENTAL_FILTER.with(|f| f.replace(None));
+}
+
+/// Check if a file is in the incremental filter
+fn is_in_incremental_filter(path: &str) -> bool {
+    INCREMENTAL_FILTER.with(|f| {
+        if let Some(ref files) = *f.borrow() {
+            files.contains(&path.to_string())
+        } else {
+            true // No filter = return all files
+        }
+    })
+}
+
 // ═══════════════════════════════════════════
 // HEADLESS API TYPES
 // ═══════════════════════════════════════════
@@ -155,7 +181,10 @@ pub fn find_source_files(path: &str, recursive: bool, extensions: &[&str]) -> Ve
     if path.is_file() {
         if let Some(ext) = path.extension() {
             if extensions.contains(&ext.to_string_lossy().as_ref()) {
-                files.push(path.to_string_lossy().to_string());
+                // Check incremental filter
+                if is_in_incremental_filter(path.to_string_lossy().as_ref()) {
+                    files.push(path.to_string_lossy().to_string());
+                }
             }
         }
     } else if path.is_dir() {
@@ -184,20 +213,25 @@ pub fn find_source_files_filtered(
 fn is_ignored_by_patterns(file_path: &str, patterns: &[String]) -> bool {
     use std::path::Path;
     let path = Path::new(file_path);
-    let file_name = path.file_name()
+    let file_name = path
+        .file_name()
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_default();
 
     for pattern in patterns {
         let pat = pattern.trim();
-        if pat.is_empty() { continue; }
+        if pat.is_empty() {
+            continue;
+        }
 
         // Directory pattern (ends with /)
         if pat.ends_with('/') {
-            let dir_name = &pat[..pat.len() - 1];
+            let dir_name = pat.strip_suffix('/').unwrap();
             for component in path.components() {
                 let comp = component.as_os_str().to_string_lossy();
-                if comp == dir_name { return true; }
+                if comp == dir_name {
+                    return true;
+                }
             }
             continue;
         }
@@ -205,21 +239,29 @@ fn is_ignored_by_patterns(file_path: &str, patterns: &[String]) -> bool {
         // *.ext pattern
         if pat.starts_with("*.") {
             let ext = &pat[1..];
-            if file_name.ends_with(ext) { return true; }
+            if file_name.ends_with(ext) {
+                return true;
+            }
             continue;
         }
 
         // Exact filename match
-        if file_name == pat { return true; }
+        if file_name == pat {
+            return true;
+        }
 
         // Path component match
         for component in path.components() {
             let comp = component.as_os_str().to_string_lossy();
-            if comp == pat { return true; }
+            if comp == pat {
+                return true;
+            }
         }
 
         // Full path suffix match
-        if file_path.ends_with(pat) { return true; }
+        if file_path.ends_with(pat) {
+            return true;
+        }
     }
     false
 }
@@ -250,7 +292,10 @@ pub fn scan_dir(dir: &Path, recursive: bool, extensions: &[&str], files: &mut Ve
     for entry in entries.flatten() {
         let path = entry.path();
         if path.is_file() && should_include_file(&path, extensions) {
-            files.push(path.to_string_lossy().to_string());
+            // Check incremental filter
+            if is_in_incremental_filter(path.to_string_lossy().as_ref()) {
+                files.push(path.to_string_lossy().to_string());
+            }
         } else if recursive && path.is_dir() && should_scan_dir(&path) {
             scan_dir(&path, recursive, extensions, files);
         }

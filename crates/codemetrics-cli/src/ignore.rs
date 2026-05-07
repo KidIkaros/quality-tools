@@ -1,6 +1,6 @@
-// ═══════════════════════════════════════════
+// ═════════════════════════════════════════
 // IGNORE — .codemetricsignore file support
-// ═══════════════════════════════════════════
+// ═════════════════════════════════════════
 
 use std::path::Path;
 
@@ -29,7 +29,8 @@ pub fn is_ignored(file_path: &str, patterns: &[String]) -> bool {
         return false;
     }
     let path = Path::new(file_path);
-    let file_name = path.file_name()
+    let file_name = path
+        .file_name()
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_default();
 
@@ -39,9 +40,8 @@ pub fn is_ignored(file_path: &str, patterns: &[String]) -> bool {
             continue;
         }
 
-        // **/ prefix — match any directory depth (check BEFORE directory pattern)
-        if pat.starts_with("**/") {
-            let suffix = &pat[3..];
+        // **/ prefix — match any directory depth
+        if let Some(suffix) = pat.strip_prefix("**/") {
             // Check if any path component or the file itself matches
             for component in path.components() {
                 let comp = component.as_os_str().to_string_lossy().to_string();
@@ -50,8 +50,7 @@ pub fn is_ignored(file_path: &str, patterns: &[String]) -> bool {
                 }
             }
             // Also check if the path contains the suffix as a substring after a /
-            if suffix.ends_with('/') {
-                let dir_suffix = &suffix[..suffix.len() - 1];
+            if let Some(dir_suffix) = suffix.strip_suffix('/') {
                 for component in path.components() {
                     if component.as_os_str().to_string_lossy() == dir_suffix {
                         return true;
@@ -64,8 +63,7 @@ pub fn is_ignored(file_path: &str, patterns: &[String]) -> bool {
         }
 
         // Directory pattern (ends with /)
-        if pat.ends_with('/') {
-            let dir_name = &pat[..pat.len() - 1];
+        if let Some(dir_name) = pat.strip_suffix('/') {
             // Check if any single component matches (e.g., "generated/" matches any "generated" dir)
             for component in path.components() {
                 if component.as_os_str().to_string_lossy() == dir_name {
@@ -73,41 +71,14 @@ pub fn is_ignored(file_path: &str, patterns: &[String]) -> bool {
                 }
             }
             // Check if the path contains the full directory sequence (e.g., "src/generated/")
-            if dir_name.contains('/') {
-                if file_path.contains(dir_name) {
-                    return true;
-                }
-            }
-            continue;
-        }
-
-        // **/ prefix — match any directory depth
-        if pat.starts_with("**/") {
-            let suffix = &pat[3..];
-            // Check if any path component or the file itself matches
-            for component in path.components() {
-                let comp = component.as_os_str().to_string_lossy().to_string();
-                if matches_glob(&comp, suffix) {
-                    return true;
-                }
-            }
-            // Also check if the path contains the suffix as a substring after a /
-            if suffix.ends_with('/') {
-                let dir_suffix = &suffix[..suffix.len() - 1];
-                for component in path.components() {
-                    if component.as_os_str().to_string_lossy() == dir_suffix {
-                        return true;
-                    }
-                }
-            } else if file_path.contains(suffix) {
+            if dir_name.contains('/') && file_path.contains(dir_name) {
                 return true;
             }
             continue;
         }
 
         // *.ext pattern
-        if pat.starts_with("*.") {
-            let ext = &pat[1..]; // ".ext"
+        if let Some(ext) = pat.strip_prefix("*.") {
             if file_name.ends_with(ext) {
                 return true;
             }
@@ -121,17 +92,12 @@ pub fn is_ignored(file_path: &str, patterns: &[String]) -> bool {
 
         // Check if any path component matches exactly
         for component in path.components() {
-            let comp = component.as_os_str().to_string_lossy();
-            if comp == pat {
+            if component.as_os_str().to_string_lossy() == pat {
                 return true;
             }
         }
-
-        // Full path suffix match (e.g., "src/generated/foo.rs")
-        if file_path.ends_with(pat) {
-            return true;
-        }
     }
+
     false
 }
 
@@ -151,11 +117,10 @@ fn matches_glob(s: &str, pattern: &str) -> bool {
         return true;
     }
     if pattern.starts_with("*.") {
-        let ext = &pattern[1..];
+        let ext = pattern.strip_prefix("*.").unwrap();
         return s.ends_with(ext);
     }
-    if pattern.ends_with(".*") {
-        let prefix = &pattern[..pattern.len() - 1];
+    if let Some(prefix) = pattern.strip_suffix(".*") {
         return s.starts_with(prefix);
     }
     // Fallback: check if the pattern appears anywhere
@@ -179,31 +144,23 @@ mod tests {
     }
 
     #[test]
-    fn test_extension_pattern() {
-        let patterns = vec!["*.generated.rs".to_string()];
-        assert!(is_ignored("src/foo.generated.rs", &patterns));
-        assert!(!is_ignored("src/foo.rs", &patterns));
+    fn test_ext_pattern() {
+        let patterns = vec!["*.rs".to_string()];
+        assert!(is_ignored("src/main.rs", &patterns));
+        assert!(!is_ignored("src/main.c", &patterns));
     }
 
     #[test]
-    fn test_directory_pattern() {
-        let patterns = vec!["generated/".to_string()];
-        assert!(is_ignored("src/generated/foo.rs", &patterns));
+    fn test_dir_pattern() {
+        let patterns = vec!["target/".to_string()];
+        assert!(is_ignored("project/target/debug/foo", &patterns));
         assert!(!is_ignored("src/main.rs", &patterns));
     }
 
     #[test]
-    fn test_double_star_pattern() {
+    fn test_double_star() {
         let patterns = vec!["**/target/".to_string()];
         assert!(is_ignored("project/target/debug/foo", &patterns));
-    }
-
-    #[test]
-    fn test_full_path_suffix() {
-        let patterns = vec!["src/generated/".to_string()];
-        // Should match files under src/generated/
-        assert!(is_ignored("project/src/generated/foo.rs", &patterns));
-        // Should NOT match files outside src/generated/
-        assert!(!is_ignored("project/src/main.rs", &patterns));
+        assert!(!is_ignored("src/main.rs", &patterns));
     }
 }

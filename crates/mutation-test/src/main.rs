@@ -501,7 +501,7 @@ fn run(cli: Cli) -> Result<(), String> {
         if crate_root_raw.is_file() {
             return analyze_non_rust_file(&cli.path, &cli);
         } else {
-            return Err(format!("Mutation test execution requires Rust crate (Cargo.toml). For other languages, pass individual files for mutation analysis only."));
+            return Err("Mutation test execution requires Rust crate (Cargo.toml). For other languages, pass individual files for mutation analysis only.".to_string());
         }
     }
 

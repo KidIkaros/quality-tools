@@ -2,9 +2,9 @@
 // SETUP — config generation, CI bootstrap, GHA workflow
 // ═══════════════════════════════════════════
 
-use colored::Colorize;
-use crate::project::ProjectProfile;
 use crate::progress::format_elapsed;
+use crate::project::ProjectProfile;
+use colored::Colorize;
 
 pub fn generate_config(output: &str, profile: &ProjectProfile) {
     let config = format!(
@@ -210,11 +210,12 @@ pub fn init_ci(config_path: &str, profile: &ProjectProfile) -> i32 {
     }
 
     // 4. Seed baseline
-    let seed = crate::progress::run_with_spinner("seeding quality baseline (this runs all tools)", || {
-        std::process::Command::new(std::env::current_exe().unwrap_or("codemetrics".into()))
-            .args(["run", ".", "--format", "sarif", "--no-fail-on-regression"])
-            .output()
-    });
+    let seed =
+        crate::progress::run_with_spinner("seeding quality baseline (this runs all tools)", || {
+            std::process::Command::new(std::env::current_exe().unwrap_or("codemetrics".into()))
+                .args(["run", ".", "--format", "sarif", "--no-fail-on-regression"])
+                .output()
+        });
     match seed {
         Ok(out) => {
             let sarif = String::from_utf8_lossy(&out.stdout);

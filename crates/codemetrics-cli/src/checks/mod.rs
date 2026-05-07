@@ -3,25 +3,19 @@
 // ═══════════════════════════════════════════
 
 use std::time::Instant;
-use serde_json;
 use syn::visit::Visit;
 use syn::{ImplItemFn, ItemEnum, ItemFn, ItemStruct, ItemTrait, Visibility};
 
-use ast_parse_ts::{parse_complexity_file, parse_doc_coverage_file, Language};
-use codemetrics_common::{crap_score, parse_lcov, CoverageRecord};
-use codemetrics_common::{find_source_files, ToolResult};
-
 use crate::types::CheckResult;
+use ast_parse_ts::{parse_complexity_file, parse_doc_coverage_file, Language};
+use codemetrics_common::find_source_files;
+use codemetrics_common::{crap_score, parse_lcov, CoverageRecord};
 
 // ─── scan_source_functions ──────────────────────────────────────────────
 
 /// Scan all source files under `path`, invoking `predicate` on each function.
 /// Returns `(total_functions_count, collected_items)`.
-pub fn scan_source_functions<T, F>(
-    path: &str,
-    recursive: bool,
-    mut predicate: F,
-) -> (usize, Vec<T>)
+pub fn scan_source_functions<T, F>(path: &str, recursive: bool, mut predicate: F) -> (usize, Vec<T>)
 where
     F: FnMut(&ast_parse_ts::FunctionInfo) -> Option<T>,
 {
@@ -150,7 +144,9 @@ pub fn check_debt(path: &str, recursive: bool, max_debt: usize) -> CheckResult {
         if let Ok(source) = std::fs::read_to_string(file) {
             for (line_num, line) in source.lines().enumerate() {
                 let trimmed = line.trim();
-                if trimmed.starts_with("//") || trimmed.starts_with("/*") || trimmed.starts_with('*')
+                if trimmed.starts_with("//")
+                    || trimmed.starts_with("/*")
+                    || trimmed.starts_with('*')
                 {
                     for marker in &markers {
                         if trimmed.contains(marker) {
@@ -318,7 +314,8 @@ pub fn check_doc_coverage(path: &str, recursive: bool, min_doc: f64) -> CheckRes
         (
             "warning".to_string(),
             "doccov-moderate".to_string(),
-            "Moderate documentation coverage. Add documentation to remaining public APIs.".to_string(),
+            "Moderate documentation coverage. Add documentation to remaining public APIs."
+                .to_string(),
         )
     };
 
@@ -405,13 +402,17 @@ pub fn check_complexity(
         (
             "info".to_string(),
             "complexity-pass".to_string(),
-            format!("Complexity violations within allowed limit (<= {}).", max_violations),
+            format!(
+                "Complexity violations within allowed limit (<= {}).",
+                max_violations
+            ),
         )
     } else if complex_funcs.len() > 10 {
         (
             "error".to_string(),
             "complexity-high".to_string(),
-            "Multiple functions with high complexity. Refactor to reduce decision points.".to_string(),
+            "Multiple functions with high complexity. Refactor to reduce decision points."
+                .to_string(),
         )
     } else {
         (
@@ -552,7 +553,10 @@ pub fn check_riskmap(path: &str, _recursive: bool, max_risk: f64) -> CheckResult
         message: if passed {
             format!("Max risk score {:.1} <= {:.1}", max_found_risk, max_risk)
         } else {
-            format!("Max risk score {:.1} > allowed {:.1}", max_found_risk, max_risk)
+            format!(
+                "Max risk score {:.1} > allowed {:.1}",
+                max_found_risk, max_risk
+            )
         },
         details: res.data.clone(),
         severity: if passed {
@@ -651,7 +655,10 @@ pub fn check_fuzz(path: &str, recursive: bool, max_fuzz_risk: usize) -> CheckRes
         message: if passed {
             format!("{} fuzzable endpoints <= {}", fuzzable, max_fuzz_risk)
         } else {
-            format!("{} fuzzable endpoints > allowed {}", fuzzable, max_fuzz_risk)
+            format!(
+                "{} fuzzable endpoints > allowed {}",
+                fuzzable, max_fuzz_risk
+            )
         },
         details: res.data.clone(),
         severity: if passed {
@@ -755,7 +762,9 @@ pub fn check_halstead(path: &str, recursive: bool, max_bugs: f64) -> CheckResult
         } else {
             Some("warning".into())
         },
-        help: Some("Halstead bugs = Volume/3000. High values indicate complex, error-prone code.".into()),
+        help: Some(
+            "Halstead bugs = Volume/3000. High values indicate complex, error-prone code.".into(),
+        ),
         rule_id: Some("halstead_bugs".into()),
     }
 }
@@ -1079,7 +1088,9 @@ pub fn check_outdated(path: &str, max_major_behind: usize) -> CheckResult {
         } else {
             Some("low".into())
         },
-        help: Some("Run `cargo update` or review Cargo.toml to upgrade outdated dependencies.".into()),
+        help: Some(
+            "Run `cargo update` or review Cargo.toml to upgrade outdated dependencies.".into(),
+        ),
         rule_id: Some("dep_freshness".into()),
     }
 }

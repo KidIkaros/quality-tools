@@ -2,17 +2,20 @@
 // BATCH EXECUTION — run_tool + run_batch
 // ═══════════════════════════════════════════
 
-use std::time::Instant;
-use serde_json;
 use colored::Colorize;
+use std::time::Instant;
 
-use codemetrics_common::*;
 use codemetrics_common::memory::MemoryMonitor;
+use codemetrics_common::*;
 
 use crate::progress::{format_ms, Bar};
-use crate::types::CheckReport;
 
-pub fn run_tool(crate_name: &str, bin_name: &str, args: &[&str], tool_start: Instant) -> ToolResult {
+pub fn run_tool(
+    crate_name: &str,
+    bin_name: &str,
+    args: &[&str],
+    tool_start: Instant,
+) -> ToolResult {
     use std::process::{Command, Stdio};
 
     let output = Command::new(bin_name)
@@ -109,34 +112,109 @@ pub fn run_batch(
     );
 
     let tools: Vec<(&str, &str, Vec<&str>)> = vec![
-        ("debt-scan", "debt", vec!["--recursive", path, "--format", "json"]),
-        ("doc-coverage", "doccov", vec!["--recursive", path, "--format", "json"]),
-        ("crap-metric", "crap", vec!["--recursive", path, "--format", "json"]),
+        (
+            "debt-scan",
+            "debt",
+            vec!["--recursive", path, "--format", "json"],
+        ),
+        (
+            "doc-coverage",
+            "doccov",
+            vec!["--recursive", path, "--format", "json"],
+        ),
+        (
+            "crap-metric",
+            "crap",
+            vec!["--recursive", path, "--format", "json"],
+        ),
         ("coupling", "coupling", vec![path, "--format", "json"]),
         ("risk-map", "riskmap", vec![path, "--format", "json"]),
-        ("duplication", "dupfind", vec!["--recursive", path, "--format", "json"]),
-        ("prop-cov", "propcov", vec!["--recursive", path, "--format", "json"]),
-        ("taint-scan", "taint", vec!["--recursive", path, "--format", "json"]),
-        ("fuzz-surface", "fuzz", vec!["--recursive", path, "--format", "json"]),
+        (
+            "duplication",
+            "dupfind",
+            vec!["--recursive", path, "--format", "json"],
+        ),
+        (
+            "prop-cov",
+            "propcov",
+            vec!["--recursive", path, "--format", "json"],
+        ),
+        (
+            "taint-scan",
+            "taint",
+            vec!["--recursive", path, "--format", "json"],
+        ),
+        (
+            "fuzz-surface",
+            "fuzz",
+            vec!["--recursive", path, "--format", "json"],
+        ),
         (
             "mutation-test",
             "mutate",
             vec![
-                path, "-p", "ast-parse-ts", "--max-mutants", "5", "--timeout", "30",
-                "--format", "json",
+                path,
+                "-p",
+                "ast-parse-ts",
+                "--max-mutants",
+                "5",
+                "--timeout",
+                "30",
+                "--format",
+                "json",
             ],
         ),
-        ("line-length", "linelen", vec!["--recursive", path, "--format", "json"]),
-        ("halstead", "halstead", vec!["--recursive", path, "--format", "json"]),
-        ("secrets", "secrets", vec!["--recursive", path, "--format", "json"]),
-        ("dead-code", "deadcode", vec!["--recursive", path, "--format", "json"]),
-        ("cohesion", "cohesion", vec!["--recursive", path, "--format", "json"]),
-        ("comment-ratio", "comments", vec!["--recursive", path, "--format", "json"]),
-        ("error-handling", "errhandle", vec!["--recursive", path, "--format", "json"]),
-        ("type-coverage", "typecov", vec!["--recursive", path, "--format", "json"]),
+        (
+            "line-length",
+            "linelen",
+            vec!["--recursive", path, "--format", "json"],
+        ),
+        (
+            "halstead",
+            "halstead",
+            vec!["--recursive", path, "--format", "json"],
+        ),
+        (
+            "secrets",
+            "secrets",
+            vec!["--recursive", path, "--format", "json"],
+        ),
+        (
+            "dead-code",
+            "deadcode",
+            vec!["--recursive", path, "--format", "json"],
+        ),
+        (
+            "cohesion",
+            "cohesion",
+            vec!["--recursive", path, "--format", "json"],
+        ),
+        (
+            "comment-ratio",
+            "comments",
+            vec!["--recursive", path, "--format", "json"],
+        ),
+        (
+            "error-handling",
+            "errhandle",
+            vec!["--recursive", path, "--format", "json"],
+        ),
+        (
+            "type-coverage",
+            "typecov",
+            vec!["--recursive", path, "--format", "json"],
+        ),
         ("vuln-scan", "vulnscan", vec![path, "--format", "json"]),
-        ("sast", "sast", vec!["--recursive", path, "--format", "json"]),
-        ("crypto-check", "cryptocheck", vec!["--recursive", path, "--format", "json"]),
+        (
+            "sast",
+            "sast",
+            vec!["--recursive", path, "--format", "json"],
+        ),
+        (
+            "crypto-check",
+            "cryptocheck",
+            vec!["--recursive", path, "--format", "json"],
+        ),
         ("licenses", "licenses", vec![path, "--format", "json"]),
     ];
 

@@ -2,8 +2,8 @@
 // PROGRESS / SPINNER
 // ═══════════════════════════════════════════
 
-use std::time::Instant;
 use colored::Colorize;
+use std::time::Instant;
 
 /// Run `f` on the current thread while a spinner ticks on a background thread.
 /// Returns the result of `f`. The spinner shows elapsed time in real-time.
@@ -128,10 +128,9 @@ impl Bar {
         if !self.tty {
             return;
         }
-        let pct = if self.total > 0 {
-            self.done * 100 / self.total
-        } else {
-            0
+        let pct = match self.total {
+            0 => 0,
+            _ => self.done * 100 / self.total,
         };
         let bar_width = 28usize;
         let filled = bar_width * self.done / self.total.max(1);

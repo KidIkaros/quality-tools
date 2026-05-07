@@ -2,9 +2,9 @@
 // AUTO-FIX — fix suggestions and automated remediation
 // ═══════════════════════════════════════════
 
-use std::path::Path;
-use colored::Colorize;
 use crate::types::CheckResult;
+use colored::Colorize;
+use std::path::Path;
 
 /// Represents a single fix suggestion
 #[derive(Debug, Clone)]
@@ -62,7 +62,8 @@ pub fn generate_fixes(results: &[CheckResult]) -> Vec<FixSuggestion> {
                     check_name: result.name.clone(),
                     file: None,
                     line: None,
-                    description: "Break long lines. Most formatters can do this automatically.".to_string(),
+                    description: "Break long lines. Most formatters can do this automatically."
+                        .to_string(),
                     auto_applicable: true,
                     fix_command: Some("cargo fmt".to_string()),
                 });
@@ -72,7 +73,8 @@ pub fn generate_fixes(results: &[CheckResult]) -> Vec<FixSuggestion> {
                     check_name: result.name.clone(),
                     file: None,
                     line: None,
-                    description: "Remove unused code. Dead code increases maintenance burden.".to_string(),
+                    description: "Remove unused code. Dead code increases maintenance burden."
+                        .to_string(),
                     auto_applicable: false,
                     fix_command: None,
                 });
@@ -92,7 +94,9 @@ pub fn generate_fixes(results: &[CheckResult]) -> Vec<FixSuggestion> {
                     check_name: result.name.clone(),
                     file: None,
                     line: None,
-                    description: "Update vulnerable dependencies. Run `cargo update` or pin safe versions.".to_string(),
+                    description:
+                        "Update vulnerable dependencies. Run `cargo update` or pin safe versions."
+                            .to_string(),
                     auto_applicable: true,
                     fix_command: Some("cargo update".to_string()),
                 });
@@ -102,7 +106,10 @@ pub fn generate_fixes(results: &[CheckResult]) -> Vec<FixSuggestion> {
                     check_name: result.name.clone(),
                     file: None,
                     line: None,
-                    description: format!("Review and fix issues reported by '{}' check.", result.name),
+                    description: format!(
+                        "Review and fix issues reported by '{}' check.",
+                        result.name
+                    ),
                     auto_applicable: false,
                     fix_command: None,
                 });
@@ -116,19 +123,31 @@ pub fn generate_fixes(results: &[CheckResult]) -> Vec<FixSuggestion> {
 /// Print fix suggestions to stdout
 pub fn print_fix_suggestions(fixes: &[FixSuggestion]) {
     if fixes.is_empty() {
-        println!("\n  {} No fix suggestions — all checks passed.\n", "✓".green().bold());
+        println!(
+            "\n  {} No fix suggestions — all checks passed.\n",
+            "✓".green().bold()
+        );
         return;
     }
 
     let auto_fixable: Vec<_> = fixes.iter().filter(|f| f.auto_applicable).collect();
     let manual: Vec<_> = fixes.iter().filter(|f| !f.auto_applicable).collect();
 
-    println!("\n{}", "═══════════════════════════════════════════════════".bright_black());
+    println!(
+        "\n{}",
+        "═══════════════════════════════════════════════════".bright_black()
+    );
     println!("  {}", "FIX SUGGESTIONS".cyan().bold());
-    println!("{}\n", "═══════════════════════════════════════════════════".bright_black());
+    println!(
+        "{}\n",
+        "═══════════════════════════════════════════════════".bright_black()
+    );
 
     if !auto_fixable.is_empty() {
-        println!("  {} Auto-fixable issues (run `codemetrics check . --fix` to apply):\n", "⚡".yellow().bold());
+        println!(
+            "  {} Auto-fixable issues (run `codemetrics check . --fix` to apply):\n",
+            "⚡".yellow().bold()
+        );
         for (i, fix) in auto_fixable.iter().enumerate() {
             let cmd = fix.fix_command.as_deref().unwrap_or("N/A");
             println!("    {}. {} → {}", i + 1, fix.check_name.yellow(), cmd);
@@ -144,18 +163,21 @@ pub fn print_fix_suggestions(fixes: &[FixSuggestion]) {
         }
     }
 
-    println!("{}", "═══════════════════════════════════════════════════\n".bright_black());
+    println!(
+        "{}",
+        "═══════════════════════════════════════════════════\n".bright_black()
+    );
 }
 
 /// Check if a --fix command can be auto-applied
 pub fn can_auto_fix(results: &[CheckResult]) -> bool {
-    results.iter().any(|r| {
-        !r.passed && matches!(r.name.as_str(), "linelen" | "vulnscan")
-    })
+    results
+        .iter()
+        .any(|r| !r.passed && matches!(r.name.as_str(), "linelen" | "vulnscan"))
 }
 
 /// Apply auto-fixes for applicable checks. Returns (fixed_count, output).
-pub fn apply_auto_fixes(path: &str, results: &[CheckResult]) -> (usize, Vec<String>) {
+pub fn apply_auto_fixes(_path: &str, results: &[CheckResult]) -> (usize, Vec<String>) {
     let mut fixed = 0;
     let mut output = Vec::new();
 
@@ -164,15 +186,16 @@ pub fn apply_auto_fixes(path: &str, results: &[CheckResult]) -> (usize, Vec<Stri
             continue;
         }
         match result.name.as_str() {
-            "linelen" => {
+            "linelen" if Path::new("Cargo.toml").exists() => {
                 // Run cargo fmt if available
-                if Path::new("Cargo.toml").exists() {
-                    output.push(format!("  {} Running cargo fmt...", "⚡".yellow()));
-                    fixed += 1;
-                }
+                output.push(format!("  {} Running cargo fmt...", "⚡".yellow()));
+                fixed += 1;
             }
             "vulnscan" => {
-                output.push(format!("  {} Run 'cargo update' to fix vulnerable deps", "⚡".yellow()));
+                output.push(format!(
+                    "  {} Run 'cargo update' to fix vulnerable deps",
+                    "⚡".yellow()
+                ));
                 fixed += 1;
             }
             _ => {}

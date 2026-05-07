@@ -3,7 +3,6 @@
 use clap::Parser;
 use colored::Colorize;
 use std::time::Instant;
-use tracing::info;
 
 // ─── Module declarations ───────────────────────────────────────────────
 mod batch;
@@ -15,6 +14,7 @@ mod health;
 mod history;
 mod hooks;
 mod ignore;
+mod incremental;
 mod output;
 mod progress;
 mod project;
@@ -71,6 +71,7 @@ fn main() {
             verbose,
             baseline,
             fix,
+            incremental,
         } => {
             let format = if ci { "json".to_string() } else { format };
             if ci {
@@ -78,11 +79,28 @@ fn main() {
             }
 
             // Load ignore patterns from .codemetricsignore
-            let ignore_patterns = ignore::load_ignore_patterns(&path);
+            let _ignore_patterns = ignore::load_ignore_patterns(&path);
 
             // Auto-load .quality.toml if present; CLI flags override file values.
             // Config loading would use config::Config via load_config_thresholds.
-            let _config_loaded = config::Config { project: None, crap: None, debt: None, doc: None, complexity: None, taint: None, duplication: None, risk: None, coupling: None, mutation: None, security: None, secrets: None, licenses: None, dead_code: None, type_coverage: None, halstead: None };
+            let _config_loaded = config::Config {
+                project: None,
+                crap: None,
+                debt: None,
+                doc: None,
+                complexity: None,
+                taint: None,
+                duplication: None,
+                risk: None,
+                coupling: None,
+                mutation: None,
+                security: None,
+                secrets: None,
+                licenses: None,
+                dead_code: None,
+                type_coverage: None,
+                halstead: None,
+            };
 
             let skip_list: Vec<String> = skip
                 .map(|s| s.split(',').map(|s| s.trim().to_lowercase()).collect())
@@ -110,10 +128,28 @@ fn main() {
                         let result = run_with_spinner(label, || $expr);
                         let elapsed = progress::format_elapsed(t.elapsed());
                         let detail = &result.message;
-                        let icon = if result.passed { "✓".green().bold() } else { "✗".red().bold() };
-                        let name_col = if result.passed { label.normal() } else { label.red() };
-                        let msg_col = if result.passed { detail.bright_black() } else { detail.red() };
-                        eprintln!("  {} {:<18} {}  {}", icon, name_col, elapsed.bright_black(), msg_col);
+                        let icon = if result.passed {
+                            "✓".green().bold()
+                        } else {
+                            "✗".red().bold()
+                        };
+                        let name_col = if result.passed {
+                            label.normal()
+                        } else {
+                            label.red()
+                        };
+                        let msg_col = if result.passed {
+                            detail.bright_black()
+                        } else {
+                            detail.red()
+                        };
+                        eprintln!(
+                            "  {} {:<18} {}  {}",
+                            icon,
+                            name_col,
+                            elapsed.bright_black(),
+                            msg_col
+                        );
                         if !result.passed || verbose {
                             health::print_offenders(&result);
                         }
@@ -126,77 +162,167 @@ fn main() {
 
             let mut checks_results = Vec::new();
 
-            if should_run("crap") {
-                checks_results.push(run_check!("crap", checks::check_crap(&path, recursive, &coverage, max_crap)));
-            }
-            if should_run("debt") {
-                checks_results.push(run_check!("debt", checks::check_debt(&path, recursive, max_debt)));
-            }
-            if should_run("doc") {
-                checks_results.push(run_check!("doc_coverage", checks::check_doc_coverage(&path, recursive, min_doc)));
-            }
-            if should_run("complexity") {
-                checks_results.push(run_check!("complexity", checks::check_complexity(&path, recursive, 10, max_complexity_violations)));
-            }
-            if should_run("taint") {
-                checks_results.push(run_check!("taint", checks::check_taint(&path, recursive, max_taint)));
-            }
-            if should_run("dup") || should_run("dupfind") || should_run("duplication") {
-                checks_results.push(run_check!("duplication", checks::check_dupfind(&path, recursive, max_duplication)));
-            }
-            if should_run("risk") || should_run("riskmap") {
-                checks_results.push(run_check!("riskmap", checks::check_riskmap(&path, recursive, max_risk)));
-            }
-            if should_run("coupling") {
-                checks_results.push(run_check!("coupling", checks::check_coupling(&path, max_coupling)));
-            }
-            if should_run("propcov") {
-                checks_results.push(run_check!("propcov", checks::check_propcov(&path, recursive, min_propcov)));
-            }
-            if should_run("fuzz") {
-                checks_results.push(run_check!("fuzz", checks::check_fuzz(&path, recursive, max_fuzz_risk)));
-            }
-            if should_run("linelen") {
-                checks_results.push(run_check!("linelen", checks::check_linelen(&path, recursive, max_linelen)));
-            }
-            if should_run("halstead") {
-                checks_results.push(run_check!("halstead", checks::check_halstead(&path, recursive, max_halstead_bugs)));
-            }
-            if should_run("secrets") {
-                checks_results.push(run_check!("secrets", checks::check_secrets(&path, recursive, max_secrets)));
-            }
-            if should_run("deadcode") {
-                checks_results.push(run_check!("deadcode", checks::check_deadcode(&path, recursive, max_deadcode)));
-            }
-            if should_run("cohesion") {
-                checks_results.push(run_check!("cohesion", checks::check_cohesion(&path, recursive, max_cohesion)));
-            }
-            if should_run("comments") {
-                checks_results.push(run_check!("comments", checks::check_comments(&path, recursive, min_comment_ratio)));
-            }
-            if should_run("errhandle") {
-                checks_results.push(run_check!("errhandle", checks::check_errhandle(&path, recursive, max_errhandle)));
-            }
-            if should_run("typecov") && min_typecov > 0.0 {
-                checks_results.push(run_check!("typecov", checks::check_typecov(&path, recursive, min_typecov)));
-            }
-            if should_run("vulnscan") {
-                checks_results.push(run_check!("vulnscan", checks::check_vulnscan(&path, max_vuln_critical, max_vuln_high)));
-            }
-            if should_run("sast") {
-                checks_results.push(run_check!("sast", checks::check_sast(&path, recursive, max_sast)));
-            }
-            if should_run("crypto") {
-                checks_results.push(run_check!("crypto", checks::check_crypto(&path, recursive, max_crypto)));
-            }
-            if should_run("licenses") {
-                checks_results.push(run_check!("licenses", checks::check_licenses(&path, max_license_violations)));
-            }
-            if should_run("outdated") {
-                checks_results.push(run_check!("outdated", checks::check_outdated(&path, max_outdated)));
+            // Incremental mode: filter to only changed files
+            let mut changed_files_for_cache: Option<Vec<String>> = None;
+            if incremental {
+                // Get all files that would be scanned
+                let all_exts = ["rs", "py", "js", "ts", "go", "java", "c", "cpp", "h", "hpp"];
+                let all_files = codemetrics_common::find_source_files(&path, recursive, &all_exts);
+                let (changed_files, total, skipped) = incremental::filter_changed_files(all_files);
+                if !changed_files.is_empty() {
+                    codemetrics_common::set_incremental_filter(changed_files.clone());
+                    eprintln!(
+                        "{}",
+                        incremental::incremental_summary(changed_files.len(), total, skipped)
+                    );
+                    changed_files_for_cache = Some(changed_files);
+                } else {
+                    eprintln!("  {} No files changed, nothing to check.", "ℹ".cyan());
+                    // Return early with success
+                    std::process::exit(0);
+                }
             }
 
-            let passed = checks_results.iter().all(|c| c.passed);
+            if should_run("crap") {
+                checks_results.push(run_check!(
+                    "crap",
+                    checks::check_crap(&path, recursive, &coverage, max_crap)
+                ));
+            }
+            if should_run("debt") {
+                checks_results.push(run_check!(
+                    "debt",
+                    checks::check_debt(&path, recursive, max_debt)
+                ));
+            }
+            if should_run("doc") {
+                checks_results.push(run_check!(
+                    "doc_coverage",
+                    checks::check_doc_coverage(&path, recursive, min_doc)
+                ));
+            }
+            if should_run("complexity") {
+                checks_results.push(run_check!(
+                    "complexity",
+                    checks::check_complexity(&path, recursive, 10, max_complexity_violations)
+                ));
+            }
+            if should_run("taint") {
+                checks_results.push(run_check!(
+                    "taint",
+                    checks::check_taint(&path, recursive, max_taint)
+                ));
+            }
+            if should_run("dup") || should_run("dupfind") || should_run("duplication") {
+                checks_results.push(run_check!(
+                    "duplication",
+                    checks::check_dupfind(&path, recursive, max_duplication)
+                ));
+            }
+            if should_run("risk") || should_run("riskmap") {
+                checks_results.push(run_check!(
+                    "riskmap",
+                    checks::check_riskmap(&path, recursive, max_risk)
+                ));
+            }
+            if should_run("coupling") {
+                checks_results.push(run_check!(
+                    "coupling",
+                    checks::check_coupling(&path, max_coupling)
+                ));
+            }
+            if should_run("propcov") {
+                checks_results.push(run_check!(
+                    "propcov",
+                    checks::check_propcov(&path, recursive, min_propcov)
+                ));
+            }
+            if should_run("fuzz") {
+                checks_results.push(run_check!(
+                    "fuzz",
+                    checks::check_fuzz(&path, recursive, max_fuzz_risk)
+                ));
+            }
+            if should_run("linelen") {
+                checks_results.push(run_check!(
+                    "linelen",
+                    checks::check_linelen(&path, recursive, max_linelen)
+                ));
+            }
+            if should_run("halstead") {
+                checks_results.push(run_check!(
+                    "halstead",
+                    checks::check_halstead(&path, recursive, max_halstead_bugs)
+                ));
+            }
+            if should_run("secrets") {
+                checks_results.push(run_check!(
+                    "secrets",
+                    checks::check_secrets(&path, recursive, max_secrets)
+                ));
+            }
+            if should_run("deadcode") {
+                checks_results.push(run_check!(
+                    "deadcode",
+                    checks::check_deadcode(&path, recursive, max_deadcode)
+                ));
+            }
+            if should_run("cohesion") {
+                checks_results.push(run_check!(
+                    "cohesion",
+                    checks::check_cohesion(&path, recursive, max_cohesion)
+                ));
+            }
+            if should_run("comments") {
+                checks_results.push(run_check!(
+                    "comments",
+                    checks::check_comments(&path, recursive, min_comment_ratio)
+                ));
+            }
+            if should_run("errhandle") {
+                checks_results.push(run_check!(
+                    "errhandle",
+                    checks::check_errhandle(&path, recursive, max_errhandle)
+                ));
+            }
+            if should_run("typecov") && min_typecov > 0.0 {
+                checks_results.push(run_check!(
+                    "typecov",
+                    checks::check_typecov(&path, recursive, min_typecov)
+                ));
+            }
+            if should_run("vulnscan") {
+                checks_results.push(run_check!(
+                    "vulnscan",
+                    checks::check_vulnscan(&path, max_vuln_critical, max_vuln_high)
+                ));
+            }
+            if should_run("sast") {
+                checks_results.push(run_check!(
+                    "sast",
+                    checks::check_sast(&path, recursive, max_sast)
+                ));
+            }
+            if should_run("crypto") {
+                checks_results.push(run_check!(
+                    "crypto",
+                    checks::check_crypto(&path, recursive, max_crypto)
+                ));
+            }
+            if should_run("licenses") {
+                checks_results.push(run_check!(
+                    "licenses",
+                    checks::check_licenses(&path, max_license_violations)
+                ));
+            }
+            if should_run("outdated") {
+                checks_results.push(run_check!(
+                    "outdated",
+                    checks::check_outdated(&path, max_outdated)
+                ));
+            }
+
+            let _passed = checks_results.iter().all(|c| c.passed);
             let total_funcs: usize = checks_results
                 .iter()
                 .filter_map(|c| c.details.get("total_functions").and_then(|v| v.as_u64()))
@@ -211,6 +337,12 @@ fn main() {
             if fix {
                 let fixes = fix::generate_fixes(&checks_results);
                 fix::print_fix_suggestions(&fixes);
+            }
+
+            // Update incremental cache if needed
+            if let Some(ref files) = changed_files_for_cache {
+                incremental::update_cache(files);
+                codemetrics_common::clear_incremental_filter();
             }
 
             let mut report = types::CheckReport {
@@ -231,13 +363,23 @@ fn main() {
             let mut baseline_regressions = false;
             if let Some(baseline_path) = &baseline {
                 if let Ok(baseline_content) = std::fs::read_to_string(baseline_path) {
-                    if let Ok(baseline_report) = serde_json::from_str::<types::CheckReport>(&baseline_content) {
+                    if let Ok(baseline_report) =
+                        serde_json::from_str::<types::CheckReport>(&baseline_content)
+                    {
                         // Check for regressions (checks that passed in baseline but fail now)
                         for current_check in &report.checks {
                             if !current_check.passed {
-                                if let Some(baseline_check) = baseline_report.checks.iter().find(|c| c.name == current_check.name) {
+                                if let Some(baseline_check) = baseline_report
+                                    .checks
+                                    .iter()
+                                    .find(|c| c.name == current_check.name)
+                                {
                                     if baseline_check.passed {
-                                        eprintln!("  {} {}: now failing (was passing in baseline)", "✗".red().bold(), current_check.name.red().bold());
+                                        eprintln!(
+                                            "  {} {}: now failing (was passing in baseline)",
+                                            "✗".red().bold(),
+                                            current_check.name.red().bold()
+                                        );
                                         baseline_regressions = true;
                                     }
                                 }
@@ -268,76 +410,264 @@ fn main() {
                 _ => output::output_json(&report),
             }
 
-            if passed && !baseline_regressions { 0 } else { 1 }
+            if passed && !baseline_regressions {
+                0
+            } else {
+                1
+            }
         }
-        Commands::Crap { path, recursive, coverage, format } => {
+        Commands::Crap {
+            path,
+            recursive,
+            coverage,
+            format,
+        } => {
             let result = if format == "text" {
-                run_with_spinner("crap", || checks::check_crap(&path, recursive, &coverage, 30.0))
+                run_with_spinner("crap", || {
+                    checks::check_crap(&path, recursive, &coverage, 30.0)
+                })
             } else {
                 checks::check_crap(&path, recursive, &coverage, 30.0)
             };
             let passed = result.passed;
             match format.as_str() {
-                "text" => { let icon = if passed { "✓".green().bold() } else { "✗".red().bold() }; eprintln!("  {} crap  {}", icon, result.message.bright_black()); println!("{}", result.message); }
-                _ => println!("{}", serde_json::to_string_pretty(&result).expect("Failed to serialize to JSON")),
+                "text" => {
+                    let icon = if passed {
+                        "✓".green().bold()
+                    } else {
+                        "✗".red().bold()
+                    };
+                    eprintln!("  {} crap  {}", icon, result.message.bright_black());
+                    println!("{}", result.message);
+                }
+                _ => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&result).expect("Failed to serialize to JSON")
+                ),
             }
-            if passed { 0 } else { 1 }
+            if passed {
+                0
+            } else {
+                1
+            }
         }
-        Commands::Debt { path, recursive, marker: _, format } => {
-            let result = if format == "text" { run_with_spinner("debt", || checks::check_debt(&path, recursive, 1000)) } else { checks::check_debt(&path, recursive, 1000) };
+        Commands::Debt {
+            path,
+            recursive,
+            marker: _,
+            format,
+        } => {
+            let result = if format == "text" {
+                run_with_spinner("debt", || checks::check_debt(&path, recursive, 1000))
+            } else {
+                checks::check_debt(&path, recursive, 1000)
+            };
             let passed = result.passed;
             match format.as_str() {
-                "text" => { let icon = if passed { "✓".green().bold() } else { "✗".red().bold() }; eprintln!("  {} debt  {}", icon, result.message.bright_black()); println!("{}", result.message); }
-                _ => println!("{}", serde_json::to_string_pretty(&result).expect("Failed to serialize to JSON")),
+                "text" => {
+                    let icon = if passed {
+                        "✓".green().bold()
+                    } else {
+                        "✗".red().bold()
+                    };
+                    eprintln!("  {} debt  {}", icon, result.message.bright_black());
+                    println!("{}", result.message);
+                }
+                _ => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&result).expect("Failed to serialize to JSON")
+                ),
             }
-            if passed { 0 } else { 1 }
+            if passed {
+                0
+            } else {
+                1
+            }
         }
-        Commands::Doccov { path, recursive, format } => {
-            let result = if format == "text" { run_with_spinner("doccov", || checks::check_doc_coverage(&path, recursive, 0.0)) } else { checks::check_doc_coverage(&path, recursive, 0.0) };
+        Commands::Doccov {
+            path,
+            recursive,
+            format,
+        } => {
+            let result = if format == "text" {
+                run_with_spinner("doccov", || {
+                    checks::check_doc_coverage(&path, recursive, 0.0)
+                })
+            } else {
+                checks::check_doc_coverage(&path, recursive, 0.0)
+            };
             let passed = result.passed;
             match format.as_str() {
-                "text" => { let icon = if passed { "✓".green().bold() } else { "✗".red().bold() }; eprintln!("  {} doccov  {}", icon, result.message.bright_black()); println!("{}", result.message); }
-                _ => println!("{}", serde_json::to_string_pretty(&result).expect("Failed to serialize to JSON")),
+                "text" => {
+                    let icon = if passed {
+                        "✓".green().bold()
+                    } else {
+                        "✗".red().bold()
+                    };
+                    eprintln!("  {} doccov  {}", icon, result.message.bright_black());
+                    println!("{}", result.message);
+                }
+                _ => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&result).expect("Failed to serialize to JSON")
+                ),
             }
-            if passed { 0 } else { 1 }
+            if passed {
+                0
+            } else {
+                1
+            }
         }
-        Commands::Dupfind { .. } => { eprintln!("dupfind subcommand not yet integrated -- use dupfind binary directly"); 2 }
-        Commands::Complexity { path, recursive, min_complexity, format } => {
-            let result = if format == "text" { run_with_spinner("complexity", || checks::check_complexity(&path, recursive, min_complexity, 0)) } else { checks::check_complexity(&path, recursive, min_complexity, 0) };
+        Commands::Dupfind { .. } => {
+            eprintln!("dupfind subcommand not yet integrated -- use dupfind binary directly");
+            2
+        }
+        Commands::Complexity {
+            path,
+            recursive,
+            min_complexity,
+            format,
+        } => {
+            let result = if format == "text" {
+                run_with_spinner("complexity", || {
+                    checks::check_complexity(&path, recursive, min_complexity, 0)
+                })
+            } else {
+                checks::check_complexity(&path, recursive, min_complexity, 0)
+            };
             let passed = result.passed;
             match format.as_str() {
-                "text" => { let icon = if passed { "✓".green().bold() } else { "✗".red().bold() }; eprintln!("  {} complexity  {}", icon, result.message.bright_black()); println!("{}", result.message); }
-                _ => println!("{}", serde_json::to_string_pretty(&result).expect("Failed to serialize to JSON")),
+                "text" => {
+                    let icon = if passed {
+                        "✓".green().bold()
+                    } else {
+                        "✗".red().bold()
+                    };
+                    eprintln!("  {} complexity  {}", icon, result.message.bright_black());
+                    println!("{}", result.message);
+                }
+                _ => println!(
+                    "{}",
+                    serde_json::to_string_pretty(&result).expect("Failed to serialize to JSON")
+                ),
             }
-            if passed { 0 } else { 1 }
+            if passed {
+                0
+            } else {
+                1
+            }
         }
-        Commands::Setup => { report::setup_command(); 0 }
+        Commands::Setup => {
+            report::setup_command();
+            0
+        }
         Commands::Init { output, ci } => {
             let detect_start = Instant::now();
-            let profile = run_with_spinner("detecting project ecosystem", || project::detect_project("."));
-            eprintln!("  {} detected: {}  ({})", "✓".green().bold(), profile.ecosystem.to_string().cyan().bold(), if profile.test_cmd.is_empty() { "no test runner".to_string() } else { profile.test_cmd.join(" ") });
+            let profile = run_with_spinner("detecting project ecosystem", || {
+                project::detect_project(".")
+            });
+            eprintln!(
+                "  {} detected: {}  ({})",
+                "✓".green().bold(),
+                profile.ecosystem.to_string().cyan().bold(),
+                if profile.test_cmd.is_empty() {
+                    "no test runner".to_string()
+                } else {
+                    profile.test_cmd.join(" ")
+                }
+            );
             let _ = detect_start;
-            if ci { setup::init_ci(&output, &profile) }
-            else {
+            if ci {
+                setup::init_ci(&output, &profile)
+            } else {
                 let write_start = Instant::now();
                 setup::generate_config(&output, &profile);
-                eprintln!("  {} wrote {}  ({})", "✓".green().bold(), output.cyan(), progress::format_elapsed(write_start.elapsed()).bright_black());
-                eprintln!(); eprintln!("  {} Next steps:", "▶".cyan().bold());
-                eprintln!("    1. {} codemetrics check .          {}", "$".bright_black(), "— run all checks now".bright_black());
-                eprintln!("    2. {} codemetrics report .         {}", "$".bright_black(), "— generate HTML audit report".bright_black());
-                eprintln!("    3. {} codemetrics init --ci        {}", "$".bright_black(), "— wire GitHub Actions + pre-commit hook".bright_black());
-                eprintln!("    4. {} codemetrics watch .          {}", "$".bright_black(), "— live re-check on file save".bright_black());
-                eprintln!(); eprintln!("  {} Tip: edit {} to tune thresholds for your project.", "ℹ".cyan(), output.cyan());
+                eprintln!(
+                    "  {} wrote {}  ({})",
+                    "✓".green().bold(),
+                    output.cyan(),
+                    progress::format_elapsed(write_start.elapsed()).bright_black()
+                );
+                eprintln!();
+                eprintln!("  {} Next steps:", "▶".cyan().bold());
+                eprintln!(
+                    "    1. {} codemetrics check .          {}",
+                    "$".bright_black(),
+                    "— run all checks now".bright_black()
+                );
+                eprintln!(
+                    "    2. {} codemetrics report .         {}",
+                    "$".bright_black(),
+                    "— generate HTML audit report".bright_black()
+                );
+                eprintln!(
+                    "    3. {} codemetrics init --ci        {}",
+                    "$".bright_black(),
+                    "— wire GitHub Actions + pre-commit hook".bright_black()
+                );
+                eprintln!(
+                    "    4. {} codemetrics watch .          {}",
+                    "$".bright_black(),
+                    "— live re-check on file save".bright_black()
+                );
+                eprintln!();
+                eprintln!(
+                    "  {} Tip: edit {} to tune thresholds for your project.",
+                    "ℹ".cyan(),
+                    output.cyan()
+                );
                 0
             }
         }
-        Commands::Discover { format } => { output::discover_command(&format); 0 }
-        Commands::Run { path, config, format, baseline, no_fail_on_regression } => batch::run_batch(&path, &config, &format, baseline.as_deref(), no_fail_on_regression),
-        Commands::History { action, dir, last, report } => history::history_command(&action, &dir, last, report.as_deref()),
+        Commands::Discover { format } => {
+            output::discover_command(&format);
+            0
+        }
+        Commands::Run {
+            path,
+            config,
+            format,
+            baseline,
+            no_fail_on_regression,
+        } => batch::run_batch(
+            &path,
+            &config,
+            &format,
+            baseline.as_deref(),
+            no_fail_on_regression,
+        ),
+        Commands::History {
+            action,
+            dir,
+            last,
+            report,
+        } => history::history_command(&action, &dir, last, report.as_deref()),
         Commands::InstallHooks { repo, fast } => hooks::install_hooks(&repo, fast),
         Commands::UninstallHooks { repo } => hooks::uninstall_hooks(&repo),
-        Commands::Watch { path, checks, debounce_ms, no_tests, full } => watch::watch_mode(&path, &checks, debounce_ms, no_tests, full),
-        Commands::Report { path, format, output, project, from_json, skip, open } => report::report_command(&path, &format, output.as_deref(), project.as_deref(), from_json.as_deref(), skip.as_deref(), open),
+        Commands::Watch {
+            path,
+            checks,
+            debounce_ms,
+            no_tests,
+            full,
+        } => watch::watch_mode(&path, &checks, debounce_ms, no_tests, full),
+        Commands::Report {
+            path,
+            format,
+            output,
+            project,
+            from_json,
+            skip,
+            open,
+        } => report::report_command(
+            &path,
+            &format,
+            output.as_deref(),
+            project.as_deref(),
+            from_json.as_deref(),
+            skip.as_deref(),
+            open,
+        ),
         Commands::Diff { before, after } => report::diff_command(&before, &after),
     };
 

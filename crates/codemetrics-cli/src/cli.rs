@@ -86,6 +86,8 @@ pub enum Commands {
         baseline: Option<String>,
         #[arg(long)]
         fix: bool,
+        #[arg(long)]
+        incremental: bool,
     },
 
     /// Verify environment dependencies (doctor)
@@ -230,8 +232,5 @@ pub enum Commands {
     },
 
     /// Compare two check JSON snapshots and show regressions or improvements
-    Diff {
-        before: String,
-        after: String,
-    },
+    Diff { before: String, after: String },
 }

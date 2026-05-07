@@ -2,8 +2,8 @@
 // HEALTH SCORING & SUMMARY DISPLAY
 // ═══════════════════════════════════════════
 
-use colored::Colorize;
 use crate::types::CheckResult;
+use colored::Colorize;
 
 /// Strip ANSI escape sequences to measure true visible character width.
 pub fn visible_len(s: &str) -> usize {
@@ -35,19 +35,20 @@ pub fn strip_ansi(s: &str) -> String {
 /// Print a box row padding `content` to `inner_width` visible chars.
 pub fn box_row(content: &str, inner_width: usize) {
     let vlen = visible_len(content);
-    let padding = if inner_width > vlen {
-        inner_width - vlen
-    } else {
-        0
-    };
-    eprintln!("  ║  {}{}║", content, " ".repeat(padding));
+    let padding = inner_width.saturating_sub(vlen);
+    eprintln!("  ║  {} {}║", content, " ".repeat(padding));
 }
 
 /// Compute a weighted health score 0–100 and letter grade.
 /// Security failures penalise harder (×3), compliance (×2), quality (×1).
 pub fn health_score(checks: &[CheckResult]) -> (u32, char) {
     let security = [
-        "secrets", "vulnscan", "taint", "errhandle", "sast", "crypto",
+        "secrets",
+        "vulnscan",
+        "taint",
+        "errhandle",
+        "sast",
+        "crypto",
     ];
     let compliance = ["licenses", "sbom"];
     if checks.is_empty() {
@@ -68,10 +69,9 @@ pub fn health_score(checks: &[CheckResult]) -> (u32, char) {
             weighted_pass += w;
         }
     }
-    let score = if weighted_total == 0 {
-        100
-    } else {
-        weighted_pass * 100 / weighted_total
+    let score = match weighted_total {
+        0 => 100,
+        _ => weighted_pass * 100 / weighted_total,
     };
     let grade = match score {
         90..=100 => 'A',
@@ -85,13 +85,15 @@ pub fn health_score(checks: &[CheckResult]) -> (u32, char) {
 
 /// Extract up to `limit` top offenders from a CheckResult's details JSON.
 /// Returns (file, line, description) tuples.
-pub fn extract_offenders(
-    check: &CheckResult,
-    limit: usize,
-) -> Vec<(String, Option<u64>, String)> {
+pub fn extract_offenders(check: &CheckResult, limit: usize) -> Vec<(String, Option<u64>, String)> {
     let mut out = Vec::new();
     let arrays = [
-        "items", "functions", "findings", "violations", "secrets", "duplicates",
+        "items",
+        "functions",
+        "findings",
+        "violations",
+        "secrets",
+        "duplicates",
     ];
     for key in &arrays {
         if let Some(arr) = check.details.get(key).and_then(|v| v.as_array()) {
@@ -150,7 +152,12 @@ pub fn print_offenders(check: &CheckResult) {
         }
     }
     let arrays = [
-        "items", "functions", "findings", "violations", "secrets", "duplicates",
+        "items",
+        "functions",
+        "findings",
+        "violations",
+        "secrets",
+        "duplicates",
     ];
     for key in &arrays {
         if let Some(arr) = check.details.get(key).and_then(|v| v.as_array()) {

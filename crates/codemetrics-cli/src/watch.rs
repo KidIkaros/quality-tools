@@ -2,16 +2,14 @@
 // WATCH MODE — file watcher with debounce
 // ═══════════════════════════════════════════
 
-use colored::Colorize;
 use crate::progress::format_elapsed;
 use crate::project::ProjectProfile;
-use crate::types::CheckResult;
+use colored::Colorize;
 
 pub fn watch_mode(path: &str, checks: &str, debounce_ms: u64, no_tests: bool, full: bool) -> i32 {
     use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
     use std::sync::mpsc;
     use std::time::{Duration, Instant};
-
     let profile = crate::project::detect_project(path);
     let check_list: Vec<String> = checks.split(',').map(|s| s.trim().to_lowercase()).collect();
 
@@ -74,11 +72,7 @@ pub fn watch_mode(path: &str, checks: &str, debounce_ms: u64, no_tests: bool, fu
                 let should_run = last_run.map_or(true, |t| now.duration_since(t) >= debounce);
                 if !should_run {
                     if !debounce_printed {
-                        eprintln!(
-                            "  {} debouncing ({}ms)…",
-                            "⏳".bright_black(),
-                            debounce_ms
-                        );
+                        eprintln!("  {} debouncing ({}ms)…", "⏳".bright_black(), debounce_ms);
                         debounce_printed = true;
                     }
                     continue;
@@ -235,9 +229,18 @@ pub fn run_watch_checks(
 
     if full {
         let cov_owned = coverage_opt.map(|s| s.to_string());
-        wpush!("debt", crate::checks::check_debt(path, true, profile.max_debt));
-        wpush!("doc", crate::checks::check_doc_coverage(path, true, profile.min_doc));
-        wpush!("crap", crate::checks::check_crap(path, true, &cov_owned, profile.max_crap));
+        wpush!(
+            "debt",
+            crate::checks::check_debt(path, true, profile.max_debt)
+        );
+        wpush!(
+            "doc",
+            crate::checks::check_doc_coverage(path, true, profile.min_doc)
+        );
+        wpush!(
+            "crap",
+            crate::checks::check_crap(path, true, &cov_owned, profile.max_crap)
+        );
         wpush!(
             "complexity",
             crate::checks::check_complexity(path, true, 10, profile.max_complexity_violations)
@@ -249,7 +252,10 @@ pub fn run_watch_checks(
         wpush!("linelen", crate::checks::check_linelen(path, true, 0));
     } else {
         if should("debt") {
-            wpush!("debt", crate::checks::check_debt(path, true, profile.max_debt));
+            wpush!(
+                "debt",
+                crate::checks::check_debt(path, true, profile.max_debt)
+            );
         }
         if should("doc") {
             wpush!(

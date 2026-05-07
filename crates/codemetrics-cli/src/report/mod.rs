@@ -2,9 +2,9 @@
 // REPORT GENERATION — HTML/Markdown/PDF + diff + setup
 // ═══════════════════════════════════════════
 
-use colored::Colorize;
 use crate::health::health_score;
 use crate::types::CheckReport;
+use colored::Colorize;
 
 pub fn open_in_browser(path: &str) {
     #[cfg(target_os = "linux")]
@@ -104,7 +104,16 @@ pub fn report_command(
         let month_days = [
             31i64,
             if leap { 29 } else { 28 },
-            31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
+            31,
+            30,
+            31,
+            30,
+            31,
+            31,
+            30,
+            31,
+            30,
+            31,
         ];
         let mut month = 0usize;
         for &md in &month_days {
@@ -130,12 +139,30 @@ pub fn report_command(
     let failed_n = check_report.summary.failed_checks;
 
     let security_tools = [
-        "secrets", "vulnscan", "taint", "errhandle", "sast", "crypto",
+        "secrets",
+        "vulnscan",
+        "taint",
+        "errhandle",
+        "sast",
+        "crypto",
     ];
     let compliance_tools = ["licenses", "sbom"];
     let quality_tools = [
-        "crap", "debt", "doc_coverage", "complexity", "duplication", "cohesion", "coupling",
-        "riskmap", "linelen", "halstead", "deadcode", "comments", "propcov", "fuzz", "typecov",
+        "crap",
+        "debt",
+        "doc_coverage",
+        "complexity",
+        "duplication",
+        "cohesion",
+        "coupling",
+        "riskmap",
+        "linelen",
+        "halstead",
+        "deadcode",
+        "comments",
+        "propcov",
+        "fuzz",
+        "typecov",
     ];
 
     match format {
@@ -243,7 +270,11 @@ pub fn report_command(
             eprintln!("  {} Report written to {}", "✓".green().bold(), out_path);
             eprintln!(
                 "  {} {} checks: {}/{} passed",
-                if passed { "✓".green().bold() } else { "✗".red().bold() },
+                if passed {
+                    "✓".green().bold()
+                } else {
+                    "✗".red().bold()
+                },
                 total,
                 passed_n,
                 total
@@ -255,7 +286,11 @@ pub fn report_command(
     }
 
     let _ = (passed_n, failed_n);
-    if passed { 0 } else { 1 }
+    if passed {
+        0
+    } else {
+        1
+    }
 }
 
 // ─── HTML helpers ───────────────────────────────────────────────────────
@@ -280,13 +315,19 @@ fn severity_badge(sev: &str) -> String {
     let color = severity_color_html(sev);
     format!(
         r#"<span style="background:{c};color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.03em">{s}</span>"#,
-        c = color, s = sev
+        c = color,
+        s = sev
     )
 }
 
 fn offender_rows_html(c: &crate::types::CheckResult) -> String {
     let arrays = [
-        "items", "functions", "findings", "violations", "secrets", "duplicates",
+        "items",
+        "functions",
+        "findings",
+        "violations",
+        "secrets",
+        "duplicates",
     ];
     for key in &arrays {
         if let Some(arr) = c.details.get(key).and_then(|v| v.as_array()) {
@@ -403,9 +444,9 @@ fn donut_svg(pct: f64, color: &str) -> String {
     let mut s = String::from(
         r#"<svg viewBox="0 0 100 100" width="120" height="120" style="display:block">"#,
     );
-    s.push_str(&format!(
+    s.push_str(
         "\n  <circle cx=\"50\" cy=\"50\" r=\"44\" fill=\"none\" stroke=\"#e5e7eb\" stroke-width=\"10\"/>\n"
-    ));
+    );
     s.push_str(&format!(
         "  <circle cx=\"50\" cy=\"50\" r=\"44\" fill=\"none\" stroke=\"{}\" stroke-width=\"10\"\n",
         color
@@ -433,7 +474,11 @@ fn mini_bar(pass: usize, total: usize, color: &str) -> String {
   <span style=\"font-family:monospace;color:{color};letter-spacing:.1em\">{bar}</span>
   <span style=\"color:#6b7280\">{pass}/{total} ({pct}%)</span>
 </div>",
-        color = color, bar = bar, pass = pass, total = total, pct = pct
+        color = color,
+        bar = bar,
+        pass = pass,
+        total = total,
+        pct = pct
     )
 }
 
@@ -482,9 +527,21 @@ fn render_html_report(
     let sec_pass = sec_checks.iter().filter(|c| c.passed).count();
     let qual_pass = qual_checks.iter().filter(|c| c.passed).count();
     let comp_pass = comp_checks.iter().filter(|c| c.passed).count();
-    let sec_col = if sec_pass == sec_checks.len() { "#22c55e" } else { "#ef4444" };
-    let qual_col = if qual_pass == qual_checks.len() { "#22c55e" } else { "#ef4444" };
-    let comp_col = if comp_pass == comp_checks.len() { "#22c55e" } else { "#ef4444" };
+    let sec_col = if sec_pass == sec_checks.len() {
+        "#22c55e"
+    } else {
+        "#ef4444"
+    };
+    let qual_col = if qual_pass == qual_checks.len() {
+        "#22c55e"
+    } else {
+        "#ef4444"
+    };
+    let comp_col = if comp_pass == comp_checks.len() {
+        "#22c55e"
+    } else {
+        "#ef4444"
+    };
 
     let failed_checks: Vec<&crate::types::CheckResult> =
         report.checks.iter().filter(|c| !c.passed).collect();
@@ -503,7 +560,12 @@ fn render_html_report(
     } else {
         let high_count = failed_checks
             .iter()
-            .filter(|c| matches!(c.severity.as_deref(), Some("high") | Some("critical") | Some("error")))
+            .filter(|c| {
+                matches!(
+                    c.severity.as_deref(),
+                    Some("high") | Some("critical") | Some("error")
+                )
+            })
             .count();
         format!(
             "{} of {} checks failed, concentrated in {}. {} finding{} rated high/critical severity require immediate attention before the next release.",
@@ -522,7 +584,8 @@ fn render_html_report(
         sorted.into_iter().take(3).collect()
     };
     let top3_html = if top3.is_empty() {
-        r#"<p style="color:#22c55e;font-size:14px">✓ No action items — all checks passed.</p>"#.to_string()
+        r#"<p style="color:#22c55e;font-size:14px">✓ No action items — all checks passed.</p>"#
+            .to_string()
     } else {
         let mut h = String::new();
         for (i, c) in top3.iter().enumerate() {
@@ -826,10 +889,38 @@ sections.forEach(s=>obs.observe(s));
         .replace("__QUAL_TOTAL__", &qual_checks.len().to_string())
         .replace("__COMP_PASS__", &comp_pass.to_string())
         .replace("__COMP_TOTAL__", &comp_checks.len().to_string())
-        .replace("__SS__", if sec_pass == sec_checks.len() { "score-pass" } else { "score-fail" })
-        .replace("__QS__", if qual_pass == qual_checks.len() { "score-pass" } else { "score-fail" })
-        .replace("__CS__", if comp_pass == comp_checks.len() { "score-pass" } else { "score-fail" })
-        .replace("__OS__", if report.passed { "score-pass" } else { "score-fail" })
+        .replace(
+            "__SS__",
+            if sec_pass == sec_checks.len() {
+                "score-pass"
+            } else {
+                "score-fail"
+            },
+        )
+        .replace(
+            "__QS__",
+            if qual_pass == qual_checks.len() {
+                "score-pass"
+            } else {
+                "score-fail"
+            },
+        )
+        .replace(
+            "__CS__",
+            if comp_pass == comp_checks.len() {
+                "score-pass"
+            } else {
+                "score-fail"
+            },
+        )
+        .replace(
+            "__OS__",
+            if report.passed {
+                "score-pass"
+            } else {
+                "score-fail"
+            },
+        )
         .replace("__OL__", if report.passed { "PASS" } else { "FAIL" })
         .replace("__EXEC_VERDICT__", &html_escape(&exec_verdict))
         .replace("__TOP3_HTML__", &top3_html)
@@ -849,7 +940,11 @@ fn render_markdown_report(
     quality_tools: &[&str],
     compliance_tools: &[&str],
 ) -> String {
-    let overall = if report.passed { "✅ PASSED" } else { "❌ FAILED" };
+    let overall = if report.passed {
+        "✅ PASSED"
+    } else {
+        "❌ FAILED"
+    };
     let pct = if report.summary.total_checks == 0 {
         100.0
     } else {
@@ -869,12 +964,19 @@ fn render_markdown_report(
          | Passed | {} |\n\
          | Failed | {} |\n\
          | Pass Rate | {:.0}% |\n\n",
-        project, overall, date, report.path, env!("CARGO_PKG_VERSION"),
-        report.summary.total_checks, report.summary.passed_checks,
-        report.summary.failed_checks, pct,
+        project,
+        overall,
+        date,
+        report.path,
+        env!("CARGO_PKG_VERSION"),
+        report.summary.total_checks,
+        report.summary.passed_checks,
+        report.summary.failed_checks,
+        pct,
     );
 
-    let failed: Vec<&crate::types::CheckResult> = report.checks.iter().filter(|c| !c.passed).collect();
+    let failed: Vec<&crate::types::CheckResult> =
+        report.checks.iter().filter(|c| !c.passed).collect();
     if !failed.is_empty() {
         md.push_str("## Remediation Checklist\n\n");
         md.push_str("| # | Check | Severity | Effort | Action |\n|---|---|---|---|---|\n");
@@ -888,7 +990,11 @@ fn render_markdown_report(
             let help = c.help.as_deref().unwrap_or("Review and fix.");
             md.push_str(&format!(
                 "| {} | `{}` | {} | {} | {} |\n",
-                i + 1, c.name, sev, effort, help
+                i + 1,
+                c.name,
+                sev,
+                effort,
+                help
             ));
         }
         md.push('\n');
@@ -926,7 +1032,9 @@ fn render_markdown_report(
         md.push('\n');
     }
 
-    md.push_str("---\n\n*Generated by CodeMetrics — automated code quality & security auditing.*  \n");
+    md.push_str(
+        "---\n\n*Generated by CodeMetrics — automated code quality & security auditing.*  \n",
+    );
     md.push_str("*This report is machine-generated. Results should be reviewed by a qualified engineer before use in compliance filings.*\n");
     md
 }
@@ -1050,7 +1158,11 @@ pub fn diff_command(before_path: &str, after_path: &str) -> i32 {
     );
     eprintln!();
 
-    if regressions.is_empty() { 0 } else { 1 }
+    if regressions.is_empty() {
+        0
+    } else {
+        1
+    }
 }
 
 // ─── setup_command ──────────────────────────────────────────────────────
@@ -1064,9 +1176,15 @@ pub fn setup_command() {
   \____\___/ \__,_|\___|_|  |_|\___|\__|_|  |_||\___|___/
 "#;
     println!("{}", ascii_art.cyan().bold());
-    println!("{}", "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━".bright_black());
+    println!(
+        "{}",
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━".bright_black()
+    );
     println!("{}", "  CodeMetrics Doctor & Setup".cyan().bold());
-    println!("{}\n", "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━".bright_black());
+    println!(
+        "{}\n",
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━".bright_black()
+    );
 
     let mut all_passed = true;
 
@@ -1130,17 +1248,27 @@ pub fn setup_command() {
         all_passed = false;
     }
 
-    println!("\n{}", "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━".bright_black());
+    println!(
+        "\n{}",
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━".bright_black()
+    );
     if all_passed {
         println!(
             "  {}",
-            "Everything looks good! Your codebase is ready.".green().bold()
+            "Everything looks good! Your codebase is ready."
+                .green()
+                .bold()
         );
     } else {
         println!(
             "  {}",
-            "Please resolve the missing requirements above.".red().bold()
+            "Please resolve the missing requirements above."
+                .red()
+                .bold()
         );
     }
-    println!("{}", "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━".bright_black());
+    println!(
+        "{}",
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━".bright_black()
+    );
 }

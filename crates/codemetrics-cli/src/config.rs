@@ -2,10 +2,10 @@
 // CONFIG — .quality.toml parsing
 // ═══════════════════════════════════════════
 
-use serde::Deserialize;
 use colored::Colorize;
+use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 pub struct Config {
     pub project: Option<ProjectConfig>,
     pub crap: Option<CrapConfig>,
@@ -153,7 +153,10 @@ pub fn validate_config(config: &Config) -> bool {
     if let Some(ref debt) = config.debt {
         if let Some(max_items) = debt.max_items.or(debt.max_markers) {
             if max_items > 10000 {
-                warnings.push(format!("debt.max_items={} is very high, analysis may be slow", max_items));
+                warnings.push(format!(
+                    "debt.max_items={} is very high, analysis may be slow",
+                    max_items
+                ));
             }
         }
     }
@@ -161,7 +164,10 @@ pub fn validate_config(config: &Config) -> bool {
     if let Some(ref complexity) = config.complexity {
         if let Some(max_violations) = complexity.max_violations {
             if max_violations > 1000 {
-                warnings.push(format!("complexity.max_violations={} is very high", max_violations));
+                warnings.push(format!(
+                    "complexity.max_violations={} is very high",
+                    max_violations
+                ));
             }
         }
     }
@@ -171,7 +177,10 @@ pub fn validate_config(config: &Config) -> bool {
         if let Some(ref eco) = project.ecosystem {
             let known = ["rust", "python", "javascript", "typescript", "go"];
             if !known.contains(&eco.to_lowercase().as_str()) {
-                warnings.push(format!("unknown ecosystem '{}', expected one of: {:?}", eco, known));
+                warnings.push(format!(
+                    "unknown ecosystem '{}', expected one of: {:?}",
+                    eco, known
+                ));
             }
         }
     }
@@ -198,34 +207,16 @@ pub fn load_and_validate(config_path: &str) -> (Config, bool) {
     let config: Config = match toml::from_str(&content) {
         Ok(c) => c,
         Err(e) => {
-            eprintln!("  {} invalid TOML in {}: {}", "✗".red().bold(), config_path, e);
+            eprintln!(
+                "  {} invalid TOML in {}: {}",
+                "✗".red().bold(),
+                config_path,
+                e
+            );
             return (Config::default(), false);
         }
     };
 
     let valid = validate_config(&config);
     (config, valid)
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            project: None,
-            crap: None,
-            debt: None,
-            doc: None,
-            complexity: None,
-            taint: None,
-            duplication: None,
-            risk: None,
-            coupling: None,
-            mutation: None,
-            security: None,
-            secrets: None,
-            licenses: None,
-            dead_code: None,
-            type_coverage: None,
-            halstead: None,
-        }
-    }
 }
